@@ -1,0 +1,5 @@
+[[2024-10-27T20:51:22.583961+01:00] request.INFO: Matched route "api_add_employee". {"route":"api_add_employee","route_parameters":{"_route":"api_add_employee","_controller":"Module\\Employees\\Controller\\Api\\EmployeeController::addEmployee"},"request_uri":"http://localhost/api/employees/add","method":"POST"} []
+[2024-10-27T20:51:22.584101+01:00] app.INFO: EmployeeService instance created. [] []
+[2024-10-27T20:51:22.584105+01:00] app.INFO: EmployeeController instance created. [] []
+[2024-10-27T20:51:22.584550+01:00] app.INFO: Executing addEmployee method. [] []
+[2024-10-27T20:51:22.584567+01:00] app.ERROR: Validation error in addEmployee method: Field 'EmployeeName' can contain only letters and spaces. [] []

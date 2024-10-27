@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.0/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true">
+
+    <testsuites>
+        <testsuite name="Project Test Suite">
+            <directory>./module/Tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <php>
+        <!-- Задаем класс ядра Symfony -->
+        <env name="KERNEL_CLASS" value="Module\Kernel"/>
+
+        <!-- Указываем окружение тестирования -->
+        <env name="APP_ENV" value="test"/>
+
+        <!-- Задаем URL подключения к тестовой базе данных -->
+        <env name="DATABASE_URL" value="mysql://root@MySQL-8.2:3306/mynews_test?serverVersion=8.0.32&amp;charset=utf8mb4"/>
+        <!-- Если у вас установлен APP_SECRET, добавьте его -->
+        <env name="APP_SECRET" value="$ecretf0rt3st"/>
+        <!-- Отключаем кэш для тестового окружения -->
+        <env name="CACHE_DRIVER" value="array"/>
+    </php>
+</phpunit>

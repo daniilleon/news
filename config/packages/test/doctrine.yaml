@@ -1,0 +1,8 @@
+doctrine:
+  dbal:
+    connections:
+      default:
+        url: '%env(resolve:DATABASE_URL)%'
+        driver: 'pdo_mysql'
+        logging: true
+        profiling: true

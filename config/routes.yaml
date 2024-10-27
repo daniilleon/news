@@ -1,5 +1,17 @@
-controllers:
-    resource:
-        path: ../src/Controller/
-        namespace: App\Controller
+#controllers:
+ #   resource:
+  #      path: ../src/Controller/
+   #     namespace: App\Controller
+    #type: attribute
+
+module_controllers:
+    resource: '../module/*/Controller/Api/'
+    type: attribute
+
+language_controller:
+    resource: '../module/Languages/Controller/Api/'
+    type: attribute
+
+employee_controller:
+    resource: '../module/Employees/Controller/Api/'
     type: attribute
