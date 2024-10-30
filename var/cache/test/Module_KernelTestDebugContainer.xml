@@ -93,6 +93,8 @@
     </parameter>
     <parameter key="session.save_path">null</parameter>
     <parameter key="session.metadata.update_threshold">0</parameter>
+    <parameter key="validator.mapping.cache.file">D:\Program\OSPanel\home\mynews\var\cache\test/validation.php</parameter>
+    <parameter key="validator.translation_domain">validators</parameter>
     <parameter key="data_collector.templates" type="collection"/>
     <parameter key="twig.form.resources" type="collection">
       <parameter>form_div_layout.html.twig</parameter>
@@ -185,34 +187,46 @@
       <tag name="controller.service_arguments"/>
       <tag name="routing.route_loader"/>
     </service>
-    <service id="Module\Employees\Controller\Api\EmployeeController" class="Module\Employees\Controller\Api\EmployeeController" public="true" autowire="true" autoconfigure="true">
-      <tag name="controller.service_arguments"/>
-      <argument type="service" id="Module\Employees\Service\EmployeeService"/>
+    <service id="Module\Common\Factory\ResponseFactory" class="Module\Common\Factory\ResponseFactory" autowire="true" autoconfigure="true">
       <argument type="service" id="monolog.logger"/>
+    </service>
+    <service id="Module\Common\Service\LanguagesValidationService" class="Module\Common\Service\LanguagesValidationService" autowire="true" autoconfigure="true">
+      <argument type="service" id="Module\Languages\Repository\LanguagesRepository"/>
+      <argument type="service" id="monolog.logger"/>
+    </service>
+    <service id="Module\Employees\Controller\Api\EmployeesController" class="Module\Employees\Controller\Api\EmployeesController" public="true" autowire="true" autoconfigure="true">
+      <tag name="controller.service_arguments"/>
+      <argument type="service" id="Module\Employees\Service\EmployeesService"/>
+      <argument type="service" id="monolog.logger"/>
+      <argument type="service" id="Module\Common\Factory\ResponseFactory"/>
     </service>
     <service id="Module\Employees\Entity\Employee" class="Module\Employees\Entity\Employee" autowire="true" autoconfigure="true"/>
-    <service id="Module\Employees\Repository\EmployeeRepository" class="Module\Employees\Repository\EmployeeRepository" autowire="true" autoconfigure="true">
+    <service id="Module\Employees\Repository\EmployeesRepository" class="Module\Employees\Repository\EmployeesRepository" autowire="true" autoconfigure="true">
       <tag name="doctrine.repository_service"/>
       <argument type="service" id="doctrine"/>
       <argument type="service" id="doctrine.orm.default_entity_manager"/>
     </service>
-    <service id="Module\Employees\Service\EmployeeService" class="Module\Employees\Service\EmployeeService" autowire="true" autoconfigure="true">
-      <argument type="service" id="Module\Employees\Repository\EmployeeRepository"/>
+    <service id="Module\Employees\Service\EmployeesService" class="Module\Employees\Service\EmployeesService" autowire="true" autoconfigure="true">
+      <argument type="service" id="Module\Employees\Repository\EmployeesRepository"/>
+      <argument type="service" id="Module\Languages\Repository\LanguagesRepository"/>
+      <argument type="service" id="Module\Common\Service\LanguagesValidationService"/>
       <argument type="service" id="monolog.logger"/>
     </service>
-    <service id="Module\Languages\Controller\Api\LanguageController" class="Module\Languages\Controller\Api\LanguageController" public="true" autowire="true" autoconfigure="true">
+    <service id="Module\Languages\Controller\Api\LanguagesController" class="Module\Languages\Controller\Api\LanguagesController" public="true" autowire="true" autoconfigure="true">
       <tag name="controller.service_arguments"/>
-      <argument type="service" id="Module\Languages\Service\LanguageService"/>
+      <argument type="service" id="Module\Languages\Service\LanguagesService"/>
       <argument type="service" id="monolog.logger"/>
+      <argument type="service" id="Module\Common\Factory\ResponseFactory"/>
     </service>
     <service id="Module\Languages\Entity\Language" class="Module\Languages\Entity\Language" autowire="true" autoconfigure="true"/>
-    <service id="Module\Languages\Repository\LanguageRepository" class="Module\Languages\Repository\LanguageRepository" autowire="true" autoconfigure="true">
+    <service id="Module\Languages\Repository\LanguagesRepository" class="Module\Languages\Repository\LanguagesRepository" autowire="true" autoconfigure="true">
       <tag name="doctrine.repository_service"/>
       <argument type="service" id="doctrine"/>
       <argument type="service" id="doctrine.orm.default_entity_manager"/>
     </service>
-    <service id="Module\Languages\Service\LanguageService" class="Module\Languages\Service\LanguageService" autowire="true" autoconfigure="true">
-      <argument type="service" id="Module\Languages\Repository\LanguageRepository"/>
+    <service id="Module\Languages\Service\LanguagesService" class="Module\Languages\Service\LanguagesService" autowire="true" autoconfigure="true">
+      <argument type="service" id="Module\Languages\Repository\LanguagesRepository"/>
+      <argument type="service" id="Module\Common\Service\LanguagesValidationService"/>
       <argument type="service" id="monolog.logger"/>
     </service>
     <service id="Module\Tests\Controller\Api\EmployeeControllerTest" class="Module\Tests\Controller\Api\EmployeeControllerTest" autowire="true" autoconfigure="true">
@@ -368,6 +382,7 @@
         <argument key="debug.stopwatch" type="service" id="debug.stopwatch" on-invalid="ignore_uninitialized"/>
         <argument key="debug.event_dispatcher" type="service" id="debug.event_dispatcher" on-invalid="ignore_uninitialized"/>
         <argument key="debug.log_processor" type="service" id="debug.log_processor" on-invalid="ignore_uninitialized"/>
+        <argument key="cache.validator_expression_language" type="service" id="cache.validator_expression_language" on-invalid="ignore_uninitialized"/>
         <argument key="twig" type="service" id="twig" on-invalid="ignore_uninitialized"/>
         <argument key="doctrine" type="service" id="doctrine" on-invalid="ignore_uninitialized"/>
         <argument key="doctrine.debug_data_holder" type="service" id="doctrine.debug_data_holder" on-invalid="ignore_uninitialized"/>
@@ -399,6 +414,9 @@
           <argument>reset</argument>
         </argument>
         <argument key="debug.log_processor" type="collection">
+          <argument>reset</argument>
+        </argument>
+        <argument key="cache.validator_expression_language" type="collection">
           <argument>reset</argument>
         </argument>
         <argument key="twig" type="collection">
@@ -567,6 +585,7 @@
         <argument>cache.validator</argument>
         <argument>cache.serializer</argument>
         <argument>cache.property_info</argument>
+        <argument>cache.validator_expression_language</argument>
         <argument>cache.doctrine.orm.default.result</argument>
         <argument>cache.doctrine.orm.default.query</argument>
       </argument>
@@ -609,6 +628,7 @@
         <argument>cache.validator</argument>
         <argument>cache.serializer</argument>
         <argument>cache.property_info</argument>
+        <argument>cache.validator_expression_language</argument>
         <argument>cache.doctrine.orm.default.result</argument>
         <argument>cache.doctrine.orm.default.query</argument>
       </argument>
@@ -628,6 +648,7 @@
         <argument>cache.validator</argument>
         <argument>cache.serializer</argument>
         <argument>cache.property_info</argument>
+        <argument>cache.validator_expression_language</argument>
         <argument>cache.doctrine.orm.default.result</argument>
         <argument>cache.doctrine.orm.default.query</argument>
       </argument>
@@ -746,6 +767,17 @@
       </call>
       <call method="setDescription">
         <argument>Help debug routes by simulating a path info match</argument>
+      </call>
+    </service>
+    <service id="console.command.validator_debug" class="Symfony\Component\Validator\Command\DebugCommand">
+      <tag name="console.command"/>
+      <tag name="container.no_preload"/>
+      <argument type="service" id="validator"/>
+      <call method="setName">
+        <argument>debug:validator</argument>
+      </call>
+      <call method="setDescription">
+        <argument>Display validation constraints for classes</argument>
       </call>
     </service>
     <service id="console.command.yaml_lint" class="Symfony\Bundle\FrameworkBundle\Command\YamlLintCommand">
@@ -1027,6 +1059,7 @@
         <argument key="cache.validator" type="service" id="cache.validator" on-invalid="ignore_uninitialized"/>
         <argument key="cache.serializer" type="service" id="cache.serializer" on-invalid="ignore_uninitialized"/>
         <argument key="cache.property_info" type="service" id="cache.property_info" on-invalid="ignore_uninitialized"/>
+        <argument key="cache.validator_expression_language" type="service" id="cache.validator_expression_language" on-invalid="ignore_uninitialized"/>
       </argument>
     </service>
     <service id="cache.global_clearer" class="Symfony\Component\HttpKernel\CacheClearer\Psr6CacheClearer" public="true">
@@ -1037,6 +1070,7 @@
         <argument key="cache.validator" type="service" id="cache.validator" on-invalid="ignore_uninitialized"/>
         <argument key="cache.serializer" type="service" id="cache.serializer" on-invalid="ignore_uninitialized"/>
         <argument key="cache.property_info" type="service" id="cache.property_info" on-invalid="ignore_uninitialized"/>
+        <argument key="cache.validator_expression_language" type="service" id="cache.validator_expression_language" on-invalid="ignore_uninitialized"/>
         <argument key="cache.doctrine.orm.default.result" type="service" id="cache.doctrine.orm.default.result" on-invalid="ignore_uninitialized"/>
         <argument key="cache.doctrine.orm.default.query" type="service" id="cache.doctrine.orm.default.query" on-invalid="ignore_uninitialized"/>
       </argument>
@@ -1064,12 +1098,14 @@
     <service id="test.private_services_locator" class="Symfony\Component\DependencyInjection\ServiceLocator" public="true">
       <tag name="container.service_locator"/>
       <argument type="collection">
+        <argument key="Module\Common\Factory\ResponseFactory" type="service_closure" id="Module\Common\Factory\ResponseFactory" on-invalid="ignore_uninitialized"/>
+        <argument key="Module\Common\Service\LanguagesValidationService" type="service_closure" id="Module\Common\Service\LanguagesValidationService" on-invalid="ignore_uninitialized"/>
         <argument key="Module\Employees\Entity\Employee" type="service_closure" id="Module\Employees\Entity\Employee" on-invalid="ignore_uninitialized"/>
-        <argument key="Module\Employees\Repository\EmployeeRepository" type="service_closure" id="Module\Employees\Repository\EmployeeRepository" on-invalid="ignore_uninitialized"/>
-        <argument key="Module\Employees\Service\EmployeeService" type="service_closure" id="Module\Employees\Service\EmployeeService" on-invalid="ignore_uninitialized"/>
+        <argument key="Module\Employees\Repository\EmployeesRepository" type="service_closure" id="Module\Employees\Repository\EmployeesRepository" on-invalid="ignore_uninitialized"/>
+        <argument key="Module\Employees\Service\EmployeesService" type="service_closure" id="Module\Employees\Service\EmployeesService" on-invalid="ignore_uninitialized"/>
         <argument key="Module\Languages\Entity\Language" type="service_closure" id="Module\Languages\Entity\Language" on-invalid="ignore_uninitialized"/>
-        <argument key="Module\Languages\Repository\LanguageRepository" type="service_closure" id="Module\Languages\Repository\LanguageRepository" on-invalid="ignore_uninitialized"/>
-        <argument key="Module\Languages\Service\LanguageService" type="service_closure" id="Module\Languages\Service\LanguageService" on-invalid="ignore_uninitialized"/>
+        <argument key="Module\Languages\Repository\LanguagesRepository" type="service_closure" id="Module\Languages\Repository\LanguagesRepository" on-invalid="ignore_uninitialized"/>
+        <argument key="Module\Languages\Service\LanguagesService" type="service_closure" id="Module\Languages\Service\LanguagesService" on-invalid="ignore_uninitialized"/>
         <argument key="argument_metadata_factory" type="service_closure" id="argument_metadata_factory" on-invalid="ignore_uninitialized"/>
         <argument key="argument_resolver.backed_enum_resolver" type="service_closure" id="argument_resolver.backed_enum_resolver" on-invalid="ignore_uninitialized"/>
         <argument key="argument_resolver.datetime" type="service_closure" id="argument_resolver.datetime" on-invalid="ignore_uninitialized"/>
@@ -1128,6 +1164,7 @@
         <argument key="console.command.event_dispatcher_debug" type="service_closure" id="console.command.event_dispatcher_debug" on-invalid="ignore_uninitialized"/>
         <argument key="console.command.router_debug" type="service_closure" id="console.command.router_debug" on-invalid="ignore_uninitialized"/>
         <argument key="console.command.router_match" type="service_closure" id="console.command.router_match" on-invalid="ignore_uninitialized"/>
+        <argument key="console.command.validator_debug" type="service_closure" id="console.command.validator_debug" on-invalid="ignore_uninitialized"/>
         <argument key="console.command.yaml_lint" type="service_closure" id="console.command.yaml_lint" on-invalid="ignore_uninitialized"/>
         <argument key="console.command.secrets_set" type="service_closure" id="console.command.secrets_set" on-invalid="ignore_uninitialized"/>
         <argument key="console.command.secrets_remove" type="service_closure" id="console.command.secrets_remove" on-invalid="ignore_uninitialized"/>
@@ -1187,6 +1224,16 @@
         <argument key="session.handler.native_file" type="service_closure" id="session.handler.native_file" on-invalid="ignore_uninitialized"/>
         <argument key="session.abstract_handler" type="service_closure" id="session.abstract_handler" on-invalid="ignore_uninitialized"/>
         <argument key="session.marshaller" type="service_closure" id="session.marshaller" on-invalid="ignore_uninitialized"/>
+        <argument key="validator" type="service_closure" id="validator" on-invalid="ignore_uninitialized"/>
+        <argument key="validator.builder" type="service_closure" id="validator.builder" on-invalid="ignore_uninitialized"/>
+        <argument key="validator.mapping.cache_warmer" type="service_closure" id="validator.mapping.cache_warmer" on-invalid="ignore_uninitialized"/>
+        <argument key="validator.mapping.cache.adapter" type="service_closure" id="validator.mapping.cache.adapter" on-invalid="ignore_uninitialized"/>
+        <argument key="validator.validator_factory" type="service_closure" id="validator.validator_factory" on-invalid="ignore_uninitialized"/>
+        <argument key="validator.expression" type="service_closure" id="validator.expression" on-invalid="ignore_uninitialized"/>
+        <argument key="validator.email" type="service_closure" id="validator.email" on-invalid="ignore_uninitialized"/>
+        <argument key="validator.not_compromised_password" type="service_closure" id="validator.not_compromised_password" on-invalid="ignore_uninitialized"/>
+        <argument key="validator.when" type="service_closure" id="validator.when" on-invalid="ignore_uninitialized"/>
+        <argument key="validator.no_suspicious_characters" type="service_closure" id="validator.no_suspicious_characters" on-invalid="ignore_uninitialized"/>
         <argument key="twig" type="service_closure" id="twig" on-invalid="ignore_uninitialized"/>
         <argument key="twig.app_variable" type="service_closure" id="twig.app_variable" on-invalid="ignore_uninitialized"/>
         <argument key="twig.template_iterator" type="service_closure" id="twig.template_iterator" on-invalid="ignore_uninitialized"/>
@@ -1271,6 +1318,7 @@
         <argument key="doctrine.orm.default_entity_listener_resolver" type="service_closure" id="doctrine.orm.default_entity_listener_resolver" on-invalid="ignore_uninitialized"/>
         <argument key="doctrine.orm.default_listeners.attach_entity_listeners" type="service_closure" id="doctrine.orm.default_listeners.attach_entity_listeners" on-invalid="ignore_uninitialized"/>
         <argument key="doctrine.orm.default_manager_configurator" type="service_closure" id="doctrine.orm.default_manager_configurator" on-invalid="ignore_uninitialized"/>
+        <argument key="doctrine.orm.default_entity_manager.validator_loader" type="service_closure" id="doctrine.orm.default_entity_manager.validator_loader" on-invalid="ignore_uninitialized"/>
         <argument key="doctrine.migrations.dependency_factory" type="service_closure" id="doctrine.migrations.dependency_factory" on-invalid="ignore_uninitialized"/>
         <argument key="doctrine.migrations.configuration_loader" type="service_closure" id="doctrine.migrations.configuration_loader" on-invalid="ignore_uninitialized"/>
         <argument key="doctrine.migrations.connection_loader" type="service_closure" id="doctrine.migrations.connection_loader" on-invalid="ignore_uninitialized"/>
@@ -1398,6 +1446,7 @@
         <argument key="debug.event_dispatcher.inner" type="service_closure" id="debug.event_dispatcher.inner" on-invalid="ignore_uninitialized"/>
         <argument key="debug.controller_resolver.inner" type="service_closure" id="debug.controller_resolver.inner" on-invalid="ignore_uninitialized"/>
         <argument key="debug.argument_resolver.inner" type="service_closure" id="debug.argument_resolver.inner" on-invalid="ignore_uninitialized"/>
+        <argument key="Symfony\Component\Validator\Validator\ValidatorInterface" type="service_closure" id="validator" on-invalid="ignore_uninitialized"/>
         <argument key="Symfony\Component\DependencyInjection\ParameterBag\ContainerBagInterface" type="service_closure" id="parameter_bag" on-invalid="ignore_uninitialized"/>
         <argument key="Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface" type="service_closure" id="parameter_bag" on-invalid="ignore_uninitialized"/>
         <argument key="Symfony\Component\EventDispatcher\EventDispatcherInterface" type="service_closure" id="debug.event_dispatcher" on-invalid="ignore_uninitialized"/>
@@ -1435,6 +1484,7 @@
         <argument key="session.storage.factory" type="service_closure" id="session.storage.factory.mock_file" on-invalid="ignore_uninitialized"/>
         <argument key="session.handler" type="service_closure" id="session.handler.native" on-invalid="ignore_uninitialized"/>
         <argument key="session_listener" type="service_closure" id="test.session.listener" on-invalid="ignore_uninitialized"/>
+        <argument key="validator.mapping.class_metadata_factory" type="service_closure" id="validator" on-invalid="ignore_uninitialized"/>
         <argument key="Twig\Environment" type="service_closure" id="twig" on-invalid="ignore_uninitialized"/>
         <argument key="Doctrine\DBAL\Connection" type="service_closure" id="doctrine.dbal.default_connection" on-invalid="ignore_uninitialized"/>
         <argument key="Doctrine\Persistence\ManagerRegistry" type="service_closure" id="doctrine" on-invalid="ignore_uninitialized"/>
@@ -2028,6 +2078,330 @@
       <factory class="Symfony\Component\HttpFoundation\Session\Storage\Handler\SessionHandlerFactory" method="createHandler"/>
     </service>
     <service id="session.marshaller" class="Symfony\Component\HttpFoundation\Session\Storage\Handler\IdentityMarshaller"/>
+    <service id="validator" class="Symfony\Component\Validator\Validator\ValidatorInterface">
+      <factory service="validator.builder" method="getValidator"/>
+    </service>
+    <service id="validator.builder" class="Symfony\Component\Validator\ValidatorBuilder">
+      <call method="setConstraintValidatorFactory">
+        <argument type="service" id="validator.validator_factory"/>
+      </call>
+      <call method="setGroupProviderLocator">
+        <argument type="service" id=".service_locator.GIuJv7e"/>
+      </call>
+      <call method="setTranslationDomain">
+        <argument>validators</argument>
+      </call>
+      <call method="enableAttributeMapping"/>
+      <call method="addMethodMapping">
+        <argument>loadValidatorMetadata</argument>
+      </call>
+      <call method="addObjectInitializers">
+        <argument type="collection">
+          <argument type="service" id="doctrine.orm.validator_initializer"/>
+        </argument>
+      </call>
+      <call method="addLoader">
+        <argument type="service" id="doctrine.orm.default_entity_manager.validator_loader"/>
+      </call>
+      <factory class="Symfony\Component\Validator\Validation" method="createValidatorBuilder"/>
+    </service>
+    <service id="validator.mapping.cache_warmer" class="Symfony\Bundle\FrameworkBundle\CacheWarmer\ValidatorCacheWarmer">
+      <tag name="kernel.cache_warmer"/>
+      <argument type="service" id="validator.builder"/>
+      <argument>D:\Program\OSPanel\home\mynews\var\cache\test/validation.php</argument>
+    </service>
+    <service id="validator.mapping.cache.adapter" class="Symfony\Component\Cache\Adapter\PhpArrayAdapter" constructor="create">
+      <argument>D:\Program\OSPanel\home\mynews\var\cache\test/validation.php</argument>
+      <argument type="service" id="cache.validator"/>
+    </service>
+    <service id="validator.validator_factory" class="Symfony\Component\Validator\ContainerConstraintValidatorFactory">
+      <argument type="service" id=".service_locator.JuRh477"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\AllValidator" class="Symfony\Component\Validator\Constraints\AllValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\AtLeastOneOfValidator" class="Symfony\Component\Validator\Constraints\AtLeastOneOfValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\BicValidator" class="Symfony\Component\Validator\Constraints\BicValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\BlankValidator" class="Symfony\Component\Validator\Constraints\BlankValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\CallbackValidator" class="Symfony\Component\Validator\Constraints\CallbackValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\CardSchemeValidator" class="Symfony\Component\Validator\Constraints\CardSchemeValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\CharsetValidator" class="Symfony\Component\Validator\Constraints\CharsetValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\ChoiceValidator" class="Symfony\Component\Validator\Constraints\ChoiceValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\CidrValidator" class="Symfony\Component\Validator\Constraints\CidrValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\CollectionValidator" class="Symfony\Component\Validator\Constraints\CollectionValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\CompoundValidator" class="Symfony\Component\Validator\Constraints\CompoundValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\CountValidator" class="Symfony\Component\Validator\Constraints\CountValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\CountryValidator" class="Symfony\Component\Validator\Constraints\CountryValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\CssColorValidator" class="Symfony\Component\Validator\Constraints\CssColorValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\CurrencyValidator" class="Symfony\Component\Validator\Constraints\CurrencyValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\DateTimeValidator" class="Symfony\Component\Validator\Constraints\DateTimeValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\DateValidator" class="Symfony\Component\Validator\Constraints\DateValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\DivisibleByValidator" class="Symfony\Component\Validator\Constraints\DivisibleByValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\EmailValidator" class="Symfony\Component\Validator\Constraints\EmailValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\EqualToValidator" class="Symfony\Component\Validator\Constraints\EqualToValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\ExpressionSyntaxValidator" class="Symfony\Component\Validator\Constraints\ExpressionSyntaxValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\ExpressionValidator" class="Symfony\Component\Validator\Constraints\ExpressionValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\FileValidator" class="Symfony\Component\Validator\Constraints\FileValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\GreaterThanOrEqualValidator" class="Symfony\Component\Validator\Constraints\GreaterThanOrEqualValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\GreaterThanValidator" class="Symfony\Component\Validator\Constraints\GreaterThanValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\HostnameValidator" class="Symfony\Component\Validator\Constraints\HostnameValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\IbanValidator" class="Symfony\Component\Validator\Constraints\IbanValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\IdenticalToValidator" class="Symfony\Component\Validator\Constraints\IdenticalToValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\ImageValidator" class="Symfony\Component\Validator\Constraints\ImageValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\IpValidator" class="Symfony\Component\Validator\Constraints\IpValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\IsFalseValidator" class="Symfony\Component\Validator\Constraints\IsFalseValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\IsNullValidator" class="Symfony\Component\Validator\Constraints\IsNullValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\IsTrueValidator" class="Symfony\Component\Validator\Constraints\IsTrueValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\IsbnValidator" class="Symfony\Component\Validator\Constraints\IsbnValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\IsinValidator" class="Symfony\Component\Validator\Constraints\IsinValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\IssnValidator" class="Symfony\Component\Validator\Constraints\IssnValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\JsonValidator" class="Symfony\Component\Validator\Constraints\JsonValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\LanguageValidator" class="Symfony\Component\Validator\Constraints\LanguageValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\LengthValidator" class="Symfony\Component\Validator\Constraints\LengthValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\LessThanOrEqualValidator" class="Symfony\Component\Validator\Constraints\LessThanOrEqualValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\LessThanValidator" class="Symfony\Component\Validator\Constraints\LessThanValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\LocaleValidator" class="Symfony\Component\Validator\Constraints\LocaleValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\LuhnValidator" class="Symfony\Component\Validator\Constraints\LuhnValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\MacAddressValidator" class="Symfony\Component\Validator\Constraints\MacAddressValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\NoSuspiciousCharactersValidator" class="Symfony\Component\Validator\Constraints\NoSuspiciousCharactersValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\NotBlankValidator" class="Symfony\Component\Validator\Constraints\NotBlankValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\NotCompromisedPasswordValidator" class="Symfony\Component\Validator\Constraints\NotCompromisedPasswordValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\NotEqualToValidator" class="Symfony\Component\Validator\Constraints\NotEqualToValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\NotIdenticalToValidator" class="Symfony\Component\Validator\Constraints\NotIdenticalToValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\NotNullValidator" class="Symfony\Component\Validator\Constraints\NotNullValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\PasswordStrengthValidator" class="Symfony\Component\Validator\Constraints\PasswordStrengthValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\RangeValidator" class="Symfony\Component\Validator\Constraints\RangeValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\RegexValidator" class="Symfony\Component\Validator\Constraints\RegexValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\SequentiallyValidator" class="Symfony\Component\Validator\Constraints\SequentiallyValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\TimeValidator" class="Symfony\Component\Validator\Constraints\TimeValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\TimezoneValidator" class="Symfony\Component\Validator\Constraints\TimezoneValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\TypeValidator" class="Symfony\Component\Validator\Constraints\TypeValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\UlidValidator" class="Symfony\Component\Validator\Constraints\UlidValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\UniqueValidator" class="Symfony\Component\Validator\Constraints\UniqueValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\UrlValidator" class="Symfony\Component\Validator\Constraints\UrlValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\UuidValidator" class="Symfony\Component\Validator\Constraints\UuidValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\ValidValidator" class="Symfony\Component\Validator\Constraints\ValidValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="Symfony\Component\Validator\Constraints\WhenValidator" class="Symfony\Component\Validator\Constraints\WhenValidator" abstract="true">
+      <tag name="container.excluded"/>
+      <tag name="validator.constraint_validator"/>
+    </service>
+    <service id="validator.expression" class="Symfony\Component\Validator\Constraints\ExpressionValidator">
+      <tag name="validator.constraint_validator" alias="validator.expression"/>
+      <argument>null</argument>
+    </service>
+    <service id="cache.validator_expression_language" class="Symfony\Component\Cache\Adapter\AdapterInterface" public="true">
+      <tag name="cache.pool"/>
+      <tag name="kernel.reset" method="reset"/>
+      <argument>WfJ+ZSmwS4</argument>
+      <argument>0</argument>
+      <argument>%container.build_id%</argument>
+      <argument>D:\Program\OSPanel\home\mynews\var\cache\test/pools/system</argument>
+      <argument type="service" id="monolog.logger.cache" on-invalid="ignore"/>
+      <factory class="Symfony\Component\Cache\Adapter\AbstractAdapter" method="createSystemCache"/>
+    </service>
+    <service id="validator.email" class="Symfony\Component\Validator\Constraints\EmailValidator">
+      <tag name="validator.constraint_validator"/>
+      <argument>html5</argument>
+    </service>
+    <service id="validator.not_compromised_password" class="Symfony\Component\Validator\Constraints\NotCompromisedPasswordValidator">
+      <tag name="validator.constraint_validator"/>
+      <argument type="service" id="http_client.uri_template" on-invalid="null"/>
+      <argument>UTF-8</argument>
+      <argument>false</argument>
+      <argument>null</argument>
+    </service>
+    <service id="validator.when" class="Symfony\Component\Validator\Constraints\WhenValidator">
+      <tag name="validator.constraint_validator"/>
+      <argument>null</argument>
+    </service>
+    <service id="validator.no_suspicious_characters" class="Symfony\Component\Validator\Constraints\NoSuspiciousCharactersValidator">
+      <tag name="validator.constraint_validator" alias="Symfony\Component\Validator\Constraints\NoSuspiciousCharactersValidator"/>
+      <argument type="collection"/>
+    </service>
     <service id="twig" class="Twig\Environment">
       <tag name="container.preload" class="Twig\Cache\FilesystemCache"/>
       <tag name="container.preload" class="Twig\Extension\CoreExtension"/>
@@ -2445,7 +2819,7 @@
     <service id="doctrine.orm.configuration" class="Doctrine\ORM\Configuration" abstract="true"/>
     <service id="doctrine.orm.entity_manager.abstract" class="Doctrine\ORM\EntityManager" lazy="true" abstract="true"/>
     <service id="doctrine.orm.container_repository_factory" class="Doctrine\Bundle\DoctrineBundle\Repository\ContainerRepositoryFactory">
-      <argument type="service" id=".service_locator.In8qBoz"/>
+      <argument type="service" id=".service_locator.D4knS18"/>
     </service>
     <service id="doctrine.orm.manager_configurator.abstract" class="Doctrine\Bundle\DoctrineBundle\ManagerConfigurator" abstract="true">
       <argument type="collection"/>
@@ -2691,6 +3065,11 @@
       <argument type="service" id="doctrine.orm.default_configuration"/>
       <argument type="service" id="doctrine.dbal.default_connection.event_manager"/>
       <configurator service="doctrine.orm.default_manager_configurator" method="configure"/>
+    </service>
+    <service id="doctrine.orm.default_entity_manager.validator_loader" class="Symfony\Bridge\Doctrine\Validator\DoctrineLoader">
+      <tag name="validator.auto_mapper" priority="-100"/>
+      <argument type="service" id="doctrine.orm.default_entity_manager"/>
+      <argument>null</argument>
     </service>
     <service id="doctrine.migrations.dependency_factory" class="Doctrine\Migrations\DependencyFactory" constructor="fromEntityManager">
       <argument type="service" id="doctrine.migrations.configuration_loader"/>
@@ -3165,10 +3544,10 @@
         <argument type="service" id="monolog.processor.psr_log_message"/>
       </call>
     </service>
-    <service id=".instanceof.Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepositoryInterface.0.Module\Employees\Repository\EmployeeRepository" class="Module\Employees\Repository\EmployeeRepository" autowire="true" abstract="true"/>
-    <service id=".abstract.instanceof.Module\Employees\Repository\EmployeeRepository" class="Module\Employees\Repository\EmployeeRepository" autowire="true" autoconfigure="true" abstract="true"/>
-    <service id=".instanceof.Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepositoryInterface.0.Module\Languages\Repository\LanguageRepository" class="Module\Languages\Repository\LanguageRepository" autowire="true" abstract="true"/>
-    <service id=".abstract.instanceof.Module\Languages\Repository\LanguageRepository" class="Module\Languages\Repository\LanguageRepository" autowire="true" autoconfigure="true" abstract="true"/>
+    <service id=".instanceof.Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepositoryInterface.0.Module\Employees\Repository\EmployeesRepository" class="Module\Employees\Repository\EmployeesRepository" autowire="true" abstract="true"/>
+    <service id=".abstract.instanceof.Module\Employees\Repository\EmployeesRepository" class="Module\Employees\Repository\EmployeesRepository" autowire="true" autoconfigure="true" abstract="true"/>
+    <service id=".instanceof.Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepositoryInterface.0.Module\Languages\Repository\LanguagesRepository" class="Module\Languages\Repository\LanguagesRepository" autowire="true" abstract="true"/>
+    <service id=".abstract.instanceof.Module\Languages\Repository\LanguagesRepository" class="Module\Languages\Repository\LanguagesRepository" autowire="true" autoconfigure="true" abstract="true"/>
     <service id=".service_locator.pRu6x_4" class="Symfony\Component\DependencyInjection\ServiceLocator">
       <tag name="container.service_locator"/>
       <argument type="collection">
@@ -3616,6 +3995,19 @@
         <argument key="kernel:loadRoutes" type="service_closure" id=".service_locator.4wc4Ag1.kernel::loadRoutes()"/>
       </argument>
     </service>
+    <service id=".service_locator.JuRh477" class="Symfony\Component\DependencyInjection\ServiceLocator">
+      <tag name="container.service_locator"/>
+      <argument type="collection">
+        <argument key="validator.expression" type="service_closure" id="validator.expression"/>
+        <argument key="Symfony\Component\Validator\Constraints\ExpressionValidator" type="service_closure" id="validator.expression"/>
+        <argument key="Symfony\Component\Validator\Constraints\EmailValidator" type="service_closure" id="validator.email"/>
+        <argument key="Symfony\Component\Validator\Constraints\NotCompromisedPasswordValidator" type="service_closure" id="validator.not_compromised_password"/>
+        <argument key="Symfony\Component\Validator\Constraints\WhenValidator" type="service_closure" id="validator.when"/>
+        <argument key="Symfony\Component\Validator\Constraints\NoSuspiciousCharactersValidator" type="service_closure" id="validator.no_suspicious_characters"/>
+        <argument key="doctrine.orm.validator.unique" type="service_closure" id="doctrine.orm.validator.unique"/>
+        <argument key="Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntityValidator" type="service_closure" id="doctrine.orm.validator.unique"/>
+      </argument>
+    </service>
     <service id=".service_locator.va_rxC4" class="Symfony\Component\DependencyInjection\ServiceLocator">
       <tag name="container.service_locator"/>
       <argument type="collection">
@@ -3680,11 +4072,11 @@
         <argument key="doctrine.orm.default_listeners.attach_entity_listeners" type="service_closure" id="doctrine.orm.default_listeners.attach_entity_listeners"/>
       </argument>
     </service>
-    <service id=".service_locator.In8qBoz" class="Symfony\Component\DependencyInjection\ServiceLocator">
+    <service id=".service_locator.D4knS18" class="Symfony\Component\DependencyInjection\ServiceLocator">
       <tag name="container.service_locator"/>
       <argument type="collection">
-        <argument key="Module\Employees\Repository\EmployeeRepository" type="service_closure" id="Module\Employees\Repository\EmployeeRepository"/>
-        <argument key="Module\Languages\Repository\LanguageRepository" type="service_closure" id="Module\Languages\Repository\LanguageRepository"/>
+        <argument key="Module\Employees\Repository\EmployeesRepository" type="service_closure" id="Module\Employees\Repository\EmployeesRepository"/>
+        <argument key="Module\Languages\Repository\LanguagesRepository" type="service_closure" id="Module\Languages\Repository\LanguagesRepository"/>
       </argument>
     </service>
     <service id=".service_locator.BxSdgVt" class="Symfony\Component\DependencyInjection\ServiceLocator">
@@ -3880,8 +4272,8 @@
       <call method="allowControllers">
         <argument type="collection">
           <argument>Module\Kernel</argument>
-          <argument>Module\Employees\Controller\Api\EmployeeController</argument>
-          <argument>Module\Languages\Controller\Api\LanguageController</argument>
+          <argument>Module\Employees\Controller\Api\EmployeesController</argument>
+          <argument>Module\Languages\Controller\Api\LanguagesController</argument>
           <argument>Doctrine\Bundle\DoctrineBundle\Controller\ProfilerController</argument>
         </argument>
       </call>
@@ -4040,6 +4432,13 @@
       <argument>Help debug routes by simulating a path info match</argument>
       <argument>false</argument>
       <argument type="service_closure" id="console.command.router_match"/>
+    </service>
+    <service id=".console.command.validator_debug.lazy" class="Symfony\Component\Console\Command\LazyCommand">
+      <argument>debug:validator</argument>
+      <argument type="collection"/>
+      <argument>Display validation constraints for classes</argument>
+      <argument>false</argument>
+      <argument type="service_closure" id="console.command.validator_debug"/>
     </service>
     <service id=".console.command.yaml_lint.lazy" class="Symfony\Component\Console\Command\LazyCommand">
       <argument>lint:yaml</argument>
@@ -4398,7 +4797,7 @@
     </service>
     <service id="console.command_loader" class="Symfony\Component\Console\CommandLoader\ContainerCommandLoader" public="true">
       <tag name="container.no_preload"/>
-      <argument type="service" id=".service_locator.AJXbUOl"/>
+      <argument type="service" id=".service_locator.tkNf_Fb"/>
       <argument type="collection">
         <argument key="about">console.command.about</argument>
         <argument key="assets:install">console.command.assets_install</argument>
@@ -4418,6 +4817,7 @@
         <argument key="debug:event-dispatcher">console.command.event_dispatcher_debug</argument>
         <argument key="debug:router">console.command.router_debug</argument>
         <argument key="router:match">console.command.router_match</argument>
+        <argument key="debug:validator">console.command.validator_debug</argument>
         <argument key="lint:yaml">console.command.yaml_lint</argument>
         <argument key="secrets:set">console.command.secrets_set</argument>
         <argument key="secrets:remove">console.command.secrets_remove</argument>
@@ -4489,7 +4889,7 @@
         <argument key="make:webhook">maker.auto_command.make_webhook</argument>
       </argument>
     </service>
-    <service id=".service_locator.AJXbUOl" class="Symfony\Component\DependencyInjection\ServiceLocator">
+    <service id=".service_locator.tkNf_Fb" class="Symfony\Component\DependencyInjection\ServiceLocator">
       <tag name="container.service_locator"/>
       <argument type="collection">
         <argument key="console.command.about" type="service_closure" id=".console.command.about.lazy"/>
@@ -4510,6 +4910,7 @@
         <argument key="console.command.event_dispatcher_debug" type="service_closure" id=".console.command.event_dispatcher_debug.lazy"/>
         <argument key="console.command.router_debug" type="service_closure" id=".console.command.router_debug.lazy"/>
         <argument key="console.command.router_match" type="service_closure" id=".console.command.router_match.lazy"/>
+        <argument key="console.command.validator_debug" type="service_closure" id=".console.command.validator_debug.lazy"/>
         <argument key="console.command.yaml_lint" type="service_closure" id=".console.command.yaml_lint.lazy"/>
         <argument key="console.command.secrets_set" type="service_closure" id=".console.command.secrets_set.lazy"/>
         <argument key="console.command.secrets_remove" type="service_closure" id=".console.command.secrets_remove.lazy"/>
@@ -4584,6 +4985,7 @@
         <argument key="Symfony\Bridge\Twig\Extension\HttpKernelRuntime" type="service_closure" id="twig.runtime.httpkernel"/>
       </argument>
     </service>
+    <service id="Symfony\Component\Validator\Validator\ValidatorInterface" alias="validator"/>
     <service id="Module\Kernel" alias="kernel" public="true"/>
     <service id="Symfony\Component\DependencyInjection\ParameterBag\ContainerBagInterface" alias="parameter_bag"/>
     <service id="Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface" alias="parameter_bag"/>
@@ -4625,6 +5027,7 @@
     <service id="session.storage.factory" alias="session.storage.factory.mock_file"/>
     <service id="session.handler" alias="session.handler.native"/>
     <service id="session_listener" alias="test.session.listener"/>
+    <service id="validator.mapping.class_metadata_factory" alias="validator"/>
     <service id="Twig\Environment" alias="twig"/>
     <service id="Doctrine\DBAL\Connection" alias="doctrine.dbal.default_connection"/>
     <service id="Doctrine\Persistence\ManagerRegistry" alias="doctrine"/>
@@ -4657,6 +5060,7 @@
     <service id="Psr\Log\LoggerInterface $routerLogger" alias="monolog.logger.router"/>
     <service id="Psr\Log\LoggerInterface $doctrineLogger" alias="monolog.logger.doctrine"/>
     <service id="Psr\Log\LoggerInterface $deprecationLogger" alias="monolog.logger.deprecation"/>
+    <service id=".service_locator.FcIjeic" alias=".service_locator.JuRh477"/>
     <service id="http_client" alias="http_client.uri_template"/>
     <service id="event_dispatcher" alias="debug.event_dispatcher" public="true"/>
     <service id="controller_resolver" alias="debug.controller_resolver"/>

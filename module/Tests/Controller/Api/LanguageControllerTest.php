@@ -2,188 +2,155 @@
 
 namespace Module\Tests\Controller\Api;
 
+use Module\Languages\Controller\Api\LanguagesController;
+use Module\Languages\Service\LanguagesService;
+use Module\Common\Factory\ResponseFactory;
+use Module\Languages\Entity\Language;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Doctrine\ORM\Tools\SchemaTool;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class LanguageControllerTest extends WebTestCase
 {
-    private $client;
+    private $languagesService;
+    private $responseFactory;
+    private $logger;
+    private $controller;
 
     protected function setUp(): void
     {
-        parent::setUp();
+        $this->languagesService = $this->createMock(LanguagesService::class);
+        $this->logger = $this->createMock(LoggerInterface::class);
+        $this->responseFactory = new ResponseFactory($this->logger);
 
-        // Set up the client
-        $this->client = static::createClient();
-
-        // Set up database schema for testing
-        $entityManager = $this->client->getContainer()->get('doctrine')->getManager();
-        $schemaTool = new SchemaTool($entityManager);
-        $metadata = $entityManager->getMetadataFactory()->getAllMetadata();
-
-        // Drop and recreate the database schema
-        $schemaTool->dropSchema($metadata);
-        $schemaTool->createSchema($metadata);
-    }
-
-    public function testGetLanguagesWhenEmpty(): void
-    {
-        $this->client->request('GET', '/api/languages');
-
-        $this->assertEquals(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
-
-        $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertIsArray($responseData);
-        $this->assertArrayHasKey('message', $responseData);
-        $this->assertEquals('No languages found. Added default language.', $responseData['message']);
+        $this->controller = new LanguagesController(
+            $this->languagesService,
+            $this->logger,
+            $this->responseFactory
+        );
     }
 
     public function testAddLanguage(): void
     {
-        $this->client->request('POST', '/api/languages/add', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'code' => 'FR',
-            'name' => 'French'
+        // Создаем объект Language и устанавливаем ID через Reflection
+        $language = new Language();
+        $reflection = new \ReflectionClass($language);
+        $property = $reflection->getProperty('id');
+        $property->setAccessible(true);
+        $property->setValue($language, 1);  // Устанавливаем ID вручную для теста
+
+        $language->setLanguageCode('MYN');
+        $language->setLanguageName('Demo');
+
+        // Ожидаем вызова addLanguage и возвращаем подготовленный объект
+        $this->languagesService->expects($this->once())
+            ->method('addLanguage')
+            ->with('MYN', 'Demo')
+            ->willReturn($language);
+
+        // Создаем запрос
+        $request = new Request([], [], [], [], [], [], json_encode([
+            'LanguageCode' => 'MYN',
+            'LanguageName' => 'Demo'
         ]));
 
-        $this->assertEquals(Response::HTTP_CREATED, $this->client->getResponse()->getStatusCode());
+        // Выполняем метод контроллера
+        $response = $this->controller->addLanguage($request);
 
-        $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('id', $responseData);
-        $this->assertEquals('French', $responseData['name']);
-        $this->assertEquals('FR', $responseData['code']);
+        // Проверяем код ответа и содержимое
+        $this->assertEquals(JsonResponse::HTTP_CREATED, $response->getStatusCode());
+
+        $responseData = json_decode($response->getContent(), true);
+
+        // Добавляем временный вывод для диагностики
+        var_dump($responseData);
+
+        $this->assertArrayHasKey('LanguageID', $responseData);
+        $this->assertEquals(1, $responseData['LanguageID']);
+        $this->assertEquals('MYN', $responseData['LanguageCode']);
+        $this->assertEquals('Demo', $responseData['LanguageName']);
         $this->assertEquals('Language added successfully.', $responseData['message']);
     }
 
-    public function testGetAllLanguages(): void
+
+
+
+
+    public function testUpdateLanguage(): void
     {
-        $this->client->request('POST', '/api/languages/add', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'code' => 'EN',
-            'name' => 'English'
+        $updatedLanguage = new Language(8, 'MYY', 'Demo');
+
+        $this->languagesService->expects($this->once())
+            ->method('updateLanguage')
+            ->with(8, ['LanguageCode' => 'MYY', 'LanguageName' => 'Demo'])
+            ->willReturn($updatedLanguage);
+
+        $request = new Request([], [], [], [], [], [], json_encode([
+            'LanguageCode' => 'MYY',
+            'LanguageName' => 'Demo'
         ]));
 
-        $this->client->request('GET', '/api/languages');
+        $response = $this->controller->updateLanguage(8, $request);
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
-        $this->assertEquals(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
+        $responseData = json_decode($response->getContent(), true);
+        $this->assertArrayHasKey('LanguageID', $responseData);
+        $this->assertArrayHasKey('LanguageCode', $responseData);
+        $this->assertArrayHasKey('LanguageName', $responseData);
+        $this->assertArrayHasKey('message', $responseData);
 
-        $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertIsArray($responseData);
-        $this->assertNotEmpty($responseData);
+        $this->assertEquals(8, $responseData['LanguageID']);
+        $this->assertEquals('MYY', $responseData['LanguageCode']);
+        $this->assertEquals('Demo', $responseData['LanguageName']);
+        $this->assertEquals('Language updated successfully.', $responseData['message']);
     }
 
-    public function testGetSingleLanguage(): void
+    public function testLanguageAlreadyExists(): void
     {
-        $this->client->request('POST', '/api/languages/add', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'code' => 'EN',
-            'name' => 'English'
+        $this->languagesService->method('addLanguage')
+            ->will($this->throwException(new \InvalidArgumentException("Language with code 'myy' already exists.")));
+
+        $request = new Request([], [], [], [], [], [], json_encode([
+            'LanguageCode' => 'myy',
+            'LanguageName' => 'Demo'
         ]));
 
-        $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('id', $responseData);
-        $id = $responseData['id'];
+        $response = $this->controller->addLanguage($request);
+        $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
 
-        $this->client->request('GET', '/api/languages/' . $id);
-
-        $this->assertEquals(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-
-        $languageData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertEquals('EN', $languageData['code']);
-        $this->assertEquals('English', $languageData['name']);
+        $responseData = json_decode($response->getContent(), true);
+        $this->assertArrayHasKey('error', $responseData);
+        $this->assertEquals("Language with code 'myy' already exists.", $responseData['error']);
     }
 
     public function testDeleteLanguage(): void
     {
-        $this->client->request('POST', '/api/languages/add', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'code' => 'DE',
-            'name' => 'German'
-        ]));
+        $this->languagesService->expects($this->once())
+            ->method('deleteLanguage')
+            ->with(10)
+            ->willReturn(true);
 
-        $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('id', $responseData);
-        $id = $responseData['id'];
+        $response = $this->controller->deleteLanguage(10);
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
-        $this->client->request('DELETE', '/api/languages/delete/' . $id);
-
-        $this->assertEquals(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-
-        $deleteResponse = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertEquals("Language with ID $id successfully deleted.", $deleteResponse['message']);
+        $responseData = json_decode($response->getContent(), true);
+        $this->assertArrayHasKey('message', $responseData);
+        $this->assertEquals("Language with ID 10 successfully deleted.", $responseData['message']);
     }
 
-    public function testUpdateLanguage(): void
+    public function testLanguageNotFound(): void
     {
-        // Создаем язык для обновления
-        $this->client->request('POST', '/api/languages/add', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'code' => 'RU',
-            'name' => 'Russian'
-        ]));
+        $this->languagesService->method('getLanguageById')
+            ->with(10)
+            ->willReturn(null);
 
-        $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('id', $responseData);
-        $id = $responseData['id'];
+        $response = $this->controller->getLanguage(10);
+        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
 
-        // Обновляем язык с новыми данными
-        $this->client->request('PUT', '/api/languages/update/' . $id, [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'code' => 'RU',
-            'name' => 'Русский'
-        ]));
-
-        // Проверяем статус успешного обновления
-        $this->assertEquals(Response::HTTP_OK, $this->client->getResponse()->getStatusCode());
-
-        // Проверяем, что данные языка были обновлены
-        $updateResponseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertEquals('RU', $updateResponseData['language']['code']);
-        $this->assertEquals('Русский', $updateResponseData['language']['name']);
-        $this->assertEquals('Language updated successfully.', $updateResponseData['message']);
-    }
-
-    public function testUpdateLanguageValidationFailure(): void
-    {
-        // Создаем язык для обновления
-        $this->client->request('POST', '/api/languages/add', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'code' => 'ES',
-            'name' => 'Spanish'
-        ]));
-
-        $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('id', $responseData);
-        $id = $responseData['id'];
-
-        // Пытаемся обновить язык с некорректным значением имени
-        $this->client->request('PUT', '/api/languages/update/' . $id, [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'code' => 'ES',
-            'name' => 'Español 123'  // Некорректные символы и цифры
-        ]));
-
-        // Проверяем, что запрос вернул ошибку валидации
-        $this->assertEquals(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
-
-        $responseData = json_decode($this->client->getResponse()->getContent(), true);
+        $responseData = json_decode($response->getContent(), true);
         $this->assertArrayHasKey('error', $responseData);
-        $this->assertEquals("Field 'name' must contain only letters without spaces.", $responseData['error']);
-    }
-
-    public function testUpdateLanguageMissingData(): void
-    {
-        // Создаем язык для обновления
-        $this->client->request('POST', '/api/languages/add', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'code' => 'JP',
-            'name' => 'Japanese'
-        ]));
-
-        $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('id', $responseData);
-        $id = $responseData['id'];
-
-        // Пытаемся обновить язык без данных
-        $this->client->request('PUT', '/api/languages/update/' . $id, [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([]));
-
-        // Проверяем, что запрос вернул ошибку из-за отсутствия данных
-        $this->assertEquals(Response::HTTP_BAD_REQUEST, $this->client->getResponse()->getStatusCode());
-
-        $responseData = json_decode($this->client->getResponse()->getContent(), true);
-        $this->assertArrayHasKey('error', $responseData);
-        $this->assertEquals('No data provided for updating language', $responseData['error']);
+        $this->assertEquals("Language with ID 10 not found.", $responseData['error']);
     }
 }

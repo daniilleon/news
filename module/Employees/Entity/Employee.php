@@ -3,23 +3,23 @@
 namespace Module\Employees\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Module\Employees\Repository\EmployeeRepository;
+use Module\Employees\Repository\EmployeesRepository;
+use Module\Languages\Entity\Language; // Подключаем сущность Language
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[ORM\Entity(repositoryClass: EmployeeRepository::class)]
+#[ORM\Entity(repositoryClass: EmployeesRepository::class)]
 #[ORM\Table(name: 'module_employees')]
 class Employee
 {
-
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(name: 'EmployeeID', type: 'integer')]
     private ?int $id = null;
 
-
-    #[ORM\Column(name: 'LanguageID', type: 'integer')]
-    #[Assert\NotBlank(message: "LanguageID is required.")]
-    private int $languageID;
+    // Связь с таблицей Languages для хранения идентификатора языка
+    #[ORM\ManyToOne(targetEntity: Language::class)]
+    #[ORM\JoinColumn(name: 'LanguageID', referencedColumnName: 'LanguageID', nullable: false)]
+    private Language $languageID;
 
     #[ORM\Column(name: 'EmployeeLink', type: 'string', length: 255)]
     #[Assert\NotBlank(message: "EmployeeLink is required.")]
@@ -40,21 +40,21 @@ class Employee
     #[Assert\Regex("/^[a-zA-Z\s0-9]*$/", message: "EmployeeDescription can contain only letters, spaces, and numbers.")]
     private ?string $employeeDescription = null;
 
-    #[ORM\Column(name: 'LinkedIn', type: 'string', length: 255, nullable: true)]
+    #[ORM\Column(name: 'EmployeeLinkedIn', type: 'string', length: 255, nullable: true)]
     #[Assert\Regex("/^[a-zA-Z0-9@._-]*$/", message: "LinkedIn can contain only letters, numbers, @, ., _ and -.")]
-    private ?string $linkedIn = null;
+    private ?string $employeeLinkedIn = null;
 
-    #[ORM\Column(name: 'Instagram', type: 'string', length: 255, nullable: true)]
+    #[ORM\Column(name: 'EmployeeInstagram', type: 'string', length: 255, nullable: true)]
     #[Assert\Regex("/^[a-zA-Z0-9@._-]*$/", message: "Instagram can contain only letters, numbers, @, ., _ and -.")]
-    private ?string $instagram = null;
+    private ?string $employeeInstagram = null;
 
-    #[ORM\Column(name: 'Facebook', type: 'string', length: 255, nullable: true)]
+    #[ORM\Column(name: 'EmployeeFacebook', type: 'string', length: 255, nullable: true)]
     #[Assert\Regex("/^[a-zA-Z0-9@._-]*$/", message: "Facebook can contain only letters, numbers, @, ., _ and -.")]
-    private ?string $facebook = null;
+    private ?string $employeeFacebook = null;
 
-    #[ORM\Column(name: 'Twitter', type: 'string', length: 255, nullable: true)]
+    #[ORM\Column(name: 'EmployeeTwitter', type: 'string', length: 255, nullable: true)]
     #[Assert\Regex("/^[a-zA-Z0-9@._-]*$/", message: "Twitter can contain only letters, numbers, @, ., _ and -.")]
-    private ?string $twitter = null;
+    private ?string $employeeTwitter = null;
 
     #[ORM\Column(name: 'CategoryID', type: 'integer')]
     #[Assert\NotBlank(message: "CategoryID is required.")]
@@ -66,131 +66,113 @@ class Employee
         return $this->id;
     }
 
-    // Получение LanguageID
-    public function getLanguageID(): int
+    // Получение объекта языка, к которому относится сотрудник
+    public function getEmployeeLanguageID(): Language
     {
         return $this->languageID;
     }
 
-    // Установка LanguageID
-    public function setLanguageID(int $languageID): self
+    // Установка объекта языка для сотрудника
+    public function setEmployeeLanguageID(Language $languageID): self
     {
         $this->languageID = $languageID;
         return $this;
     }
 
-    // Получение EmployeeLink
     public function getEmployeeLink(): string
     {
         return $this->employeeLink;
     }
 
-    // Установка EmployeeLink
     public function setEmployeeLink(string $employeeLink): self
     {
         $this->employeeLink = strtolower(trim($employeeLink));
         return $this;
     }
 
-    // Получение EmployeeName
     public function getEmployeeName(): string
     {
         return $this->employeeName;
     }
 
-    // Установка EmployeeName
     public function setEmployeeName(string $employeeName): self
     {
         $this->employeeName = ucwords(strtolower(trim($employeeName)));
         return $this;
     }
 
-    // Получение EmployeeJobTitle
     public function getEmployeeJobTitle(): string
     {
         return $this->employeeJobTitle;
     }
 
-    // Установка EmployeeJobTitle
     public function setEmployeeJobTitle(string $employeeJobTitle): self
     {
         $this->employeeJobTitle = trim($employeeJobTitle);
         return $this;
     }
 
-    // Получение EmployeeDescription
     public function getEmployeeDescription(): ?string
     {
         return $this->employeeDescription;
     }
 
-    // Установка EmployeeDescription
     public function setEmployeeDescription(?string $employeeDescription): self
     {
         $this->employeeDescription = $employeeDescription ? trim($employeeDescription) : null;
         return $this;
     }
 
-    // Получение LinkedIn
-    public function getLinkedIn(): ?string
+    public function getEmployeeLinkedIn(): ?string
     {
-        return $this->linkedIn;
+        return $this->employeeLinkedIn;
     }
 
-    // Установка LinkedIn
-    public function setLinkedIn(?string $linkedIn): self
+    public function setEmployeeLinkedIn(?string $employeeLinkedIn): self
     {
-        $this->linkedIn = $linkedIn ? trim($linkedIn) : null;
+        $this->employeeLinkedIn = $employeeLinkedIn ? trim($employeeLinkedIn) : null;
         return $this;
     }
 
-    // Получение Instagram
-    public function getInstagram(): ?string
+    public function getEmployeeInstagram(): ?string
     {
-        return $this->instagram;
+        return $this->employeeInstagram;
     }
 
-    // Установка Instagram
-    public function setInstagram(?string $instagram): self
+    public function setEmployeeInstagram(?string $employeeInstagram): self
     {
-        $this->instagram = $instagram ? trim($instagram) : null;
+        $this->employeeInstagram = $employeeInstagram ? trim($employeeInstagram) : null;
         return $this;
     }
 
-    // Получение Facebook
-    public function getFacebook(): ?string
+    public function getEmployeeFacebook(): ?string
     {
-        return $this->facebook;
+        return $this->employeeFacebook;
     }
 
-    // Установка Facebook
-    public function setFacebook(?string $facebook): self
+    public function setEmployeeFacebook(?string $employeeFacebook): self
     {
-        $this->facebook = $facebook ? trim($facebook) : null;
+        $this->employeeFacebook = $employeeFacebook ? trim($employeeFacebook) : null;
         return $this;
     }
 
-    // Получение Twitter
-    public function getTwitter(): ?string
+    public function getEmployeeTwitter(): ?string
     {
-        return $this->twitter;
+        return $this->employeeTwitter;
     }
 
-    // Установка Twitter
-    public function setTwitter(?string $twitter): self
+    public function setEmployeeTwitter(?string $employeeTwitter): self
     {
-        $this->twitter = $twitter ? trim($twitter) : null;
+        $this->employeeTwitter = $employeeTwitter ? trim($employeeTwitter) : null;
         return $this;
     }
 
-    // Получение CategoryID
-    public function getCategoryID(): int
+    public function getEmployeeCategoryID(): int
     {
         return $this->categoryID;
     }
 
-    // Установка CategoryID
-    public function setCategoryID(int $categoryID): self
+    public function setEmployeeCategoryID(int $categoryID): self
     {
         $this->categoryID = $categoryID;
         return $this;

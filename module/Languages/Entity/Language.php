@@ -2,52 +2,52 @@
 namespace Module\Languages\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Module\Languages\Repository\LanguageRepository;
+use Module\Languages\Repository\LanguagesRepository;
 
-#[ORM\Entity(repositoryClass: LanguageRepository::class)]
+#[ORM\Entity(repositoryClass: LanguagesRepository::class)]
 #[ORM\Table(name: 'module_languages')]
 class Language
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(name: 'LanguageID', type: 'integer')]
-    private int $id;
+    private ?int $id = null;
 
     #[ORM\Column(name: 'LanguageCode', type: 'string', length: 10, unique: true)]
-    private string $code;
+    private string $LanguageCode;
 
     #[ORM\Column(name: 'LanguageName', type: 'string', length: 100)]
-    private string $name;
+    private string $languageName;
 
     // Получение ID языка
-    public function getId(): int
+    public function getLanguageID(): ?int
     {
         return $this->id;
     }
 
     // Получение кода языка
-    public function getCode(): string
+    public function getLanguageCode(): string
     {
-        return $this->code;
+        return $this->LanguageCode;
     }
 
     // Установка кода языка
-    public function setCode(string $code): self
+    public function setLanguageCode(string $LanguageCode): self
     {
-        $this->code = $code;
+        $this->LanguageCode = $LanguageCode;
         return $this;
     }
 
     // Получение названия языка
-    public function getName(): string
+    public function getLanguageName(): string
     {
-        return $this->name;
+        return $this->languageName;
     }
 
     // Установка названия языка
-    public function setName(string $name): self
+    public function setLanguageName(string $languageName): self
     {
-        $this->name = $name;
+        $this->languageName = $languageName;
         return $this;
     }
 }
