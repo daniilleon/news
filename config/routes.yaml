@@ -15,3 +15,7 @@ language_controller:
 employee_controller:
     resource: '../module/Employees/Controller/Api/'
     type: attribute
+
+categories_controller:
+    resource: '../module/Categories/Controller/Api/'
+    type: attribute

@@ -54,8 +54,8 @@ class LanguagesValidationService
             throw new \InvalidArgumentException("LanguageName cannot be empty or only spaces.");
         }
 
-        if (strlen($languageName) > 15) {
-            $this->logger->error("LanguageName cannot contain more than 15 characters.");
+        if (strlen($languageName) > 20) {
+            $this->logger->error("LanguageName cannot contain more than 20 characters.");
             throw new \InvalidArgumentException("LanguageName cannot contain more than 15 characters.");
         }
 
@@ -66,15 +66,32 @@ class LanguagesValidationService
     }
 
 
-    public function validateLanguageID(int $languageID): bool
+    public function validateLanguageID(?int $languageID): Language
     {
+        // Проверка на наличие LanguageID
+        if ($languageID === null) {
+            $this->logger->error("Field 'LanguageID' is required.");
+            throw new \InvalidArgumentException("Field 'LanguageID' is required.");
+        }
+
+        // Основная проверка существования языка
         $language = $this->languagesRepository->find($languageID);
         if (!$language) {
             $this->logger->error("Language with ID {$languageID} not found.");
-            return false;
+            throw new \InvalidArgumentException("Language with ID {$languageID} not found.");
         }
-        return true;
+        return $language;
     }
+
+    public function checkImmutableLanguageID(array $data, int $translationId): void
+    {
+        // Проверка на присутствие LanguageID в запросе
+        if (isset($data['LanguageID'])) {
+            $this->logger->error("LanguageID cannot be modified in translation update for translation ID $translationId.");
+            throw new \InvalidArgumentException("LanguageID cannot be modified for an existing translation.");
+        }
+    }
+
 
     public function formatLanguageData(Language $language, bool $detailed = true): array
     {

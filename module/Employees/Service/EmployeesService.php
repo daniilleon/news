@@ -86,8 +86,6 @@ class EmployeesService
         }
     }
 
-
-
     /**
      * Получение всех сотрудников.
      *
@@ -120,7 +118,6 @@ class EmployeesService
         if (!$employee) {
             $this->logger->info("Employee with ID {$id} not found.");
         }
-
         return $employee;
     }
 
@@ -137,16 +134,12 @@ class EmployeesService
         $this->validateEmployeeData($data);
 
         // Проверка на наличие `LanguageID`
-        if (!isset($data['LanguageID'])) {
-            $this->logger->error("LanguageID is missing in the provided data.");
-            throw new \InvalidArgumentException("LanguageID is required.");
-        }
-
+//        if (!isset($data['LanguageID'])) {
+//            $this->logger->error("LanguageID is missing in the provided data.");
+//            throw new \InvalidArgumentException("LanguageID is required.");
+//        }
         // Используем Общий ValidationService для проверки `LanguageID`
-        if (!$this->validationService->validateLanguageID($data['LanguageID'])) {
-            throw new \InvalidArgumentException("Language with ID {$data['LanguageID']} not found.");
-        }
-
+        $this->validationService->validateLanguageID($data['LanguageID']); // Валидация существования языка
         // Получаем объект Language из LanguageRepository
         $language = $this->languageRepository->find($data['LanguageID']);
 
@@ -162,7 +155,6 @@ class EmployeesService
                 $employee->$setter($value);
             }
         }
-
         // Сохраняем сотрудника в базе данных
         $this->employeeRepository->saveEmployee($employee, true);
         $this->logger->info("Employee '{$employee->getEmployeeName()}' added with ID: {$employee->getEmployeeID()}.");
@@ -195,12 +187,8 @@ class EmployeesService
             // Обрабатываем каждый элемент в массиве данных
             foreach ($data as $field => $value) {
                 $setter = 'set' . ucfirst($field);
-
                 if ($field === 'LanguageID') {
-                    // Получаем язык по `LanguageID`
-                    if (!$this->validationService->validateLanguageID($value)) {
-                        throw new \InvalidArgumentException("Language with ID {$value} not found.");
-                    }
+                    $this->validationService->validateLanguageID($value); // Валидация существования языка
                     $language = $this->languageRepository->find($value);
                     $employee->setEmployeeLanguageID($language);
                 } elseif ($field === 'EmployeeCategoryID' && is_int($value)) {
@@ -253,9 +241,7 @@ class EmployeesService
             // Проверка для обновляемого параметра `LanguageID`
             if ($field === 'LanguageID') {
                 // Используем ValidationService для проверки `LanguageID`
-                if (!$this->validationService->validateLanguageID($value)) {
-                    throw new \InvalidArgumentException("Language with ID $value not found.");
-                }
+                $this->validationService->validateLanguageID($value); // Валидация существования языка
                 $language = $this->languageRepository->find($value);
                 $employee->setEmployeeLanguageID($language);
             } else {
