@@ -24,6 +24,13 @@ class Categories
     #[Assert\Regex("/^[a-zA-Z0-9_-]+$/", message: "CategoryLink can contain only letters, numbers, underscores, and hyphens.")]
     private string $categoryLink;
 
+    #[ORM\Column(name: 'og_image', type: 'string', length: 255, nullable: true)]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: "The image path cannot be longer than {{ limit }} characters."
+    )]
+    private ?string $ogImage = null;
+
     public function __construct()
     {
         $this->createdDate = new DateTime();
@@ -47,6 +54,18 @@ class Categories
     public function setCategoryLink(string $categoryLink): self
     {
         $this->categoryLink = strtolower(trim($categoryLink));
+        return $this;
+    }
+
+
+    public function getOgImage(): ?string
+    {
+        return $this->ogImage;
+    }
+
+    public function setOgImage(?string $ogImage): self
+    {
+        $this->ogImage = $ogImage;
         return $this;
     }
 }

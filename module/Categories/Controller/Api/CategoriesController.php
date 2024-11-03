@@ -72,9 +72,27 @@ class CategoriesController
         } catch (\Exception $e) {
             $this->logger->error("Failed to add category: " . $e->getMessage());
             return $this->responseFactory->createErrorResponse('Unable to add category', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
-            //return $this->responseFactory->createErrorResponse($e->getMessage(), JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
+    #[Route('/categories/{id}/upload-image', name: 'api_update_category_image', methods: ['POST'])]
+    public function updateCategoryImage(int $id, Request $request): JsonResponse
+    {
+        try {
+            // Получаем файл og_image из запроса и передаем его в сервис без проверки
+            $file = $request->files->get('og_image');
+            // Вызываем метод сервиса для обновления изображения
+            $responseData = $this->categoriesService->updateCategoryImage($id, $file);
+            return $this->responseFactory->createSuccessResponse($responseData);
+        } catch (\InvalidArgumentException $e) {
+            $this->logger->error("InvalidArgumentException caught in controller: " . $e->getMessage());
+            return $this->responseFactory->createErrorResponse($e->getMessage(), JsonResponse::HTTP_BAD_REQUEST);
+        } catch (\Exception $e) {
+            $this->logger->error("Failed to update category image: " . $e->getMessage());
+            return $this->responseFactory->createErrorResponse('Unable to update category image', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
     // Добавление перевода для категории.
     #[Route('/categories/{id}/add-translation', name: 'api_add_category_translation', methods: ['POST'])]

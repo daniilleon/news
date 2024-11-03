@@ -5,6 +5,7 @@ namespace Module\Employees\Entity;
 use Doctrine\ORM\Mapping as ORM;
 use Module\Employees\Repository\EmployeesRepository;
 use Module\Languages\Entity\Language; // Подключаем сущность Language
+use Module\Categories\Entity\Categories;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: EmployeesRepository::class)]
@@ -20,6 +21,10 @@ class Employee
     #[ORM\ManyToOne(targetEntity: Language::class)]
     #[ORM\JoinColumn(name: 'LanguageID', referencedColumnName: 'LanguageID', nullable: false)]
     private Language $languageID;
+
+    #[ORM\ManyToOne(targetEntity: Categories::class)]
+    #[ORM\JoinColumn(name: 'CategoryID', referencedColumnName: 'CategoryID', nullable: false)]
+    private Categories $categoryID;
 
     #[ORM\Column(name: 'EmployeeLink', type: 'string', length: 255)]
     #[Assert\NotBlank(message: "EmployeeLink is required.")]
@@ -56,10 +61,6 @@ class Employee
     #[Assert\Regex("/^[a-zA-Z0-9@._-]*$/", message: "Twitter can contain only letters, numbers, @, ., _ and -.")]
     private ?string $employeeTwitter = null;
 
-    #[ORM\Column(name: 'CategoryID', type: 'integer')]
-    #[Assert\NotBlank(message: "CategoryID is required.")]
-    private int $categoryID;
-
     // Получение ID сотрудника
     public function getEmployeeID(): ?int
     {
@@ -76,6 +77,17 @@ class Employee
     public function setEmployeeLanguageID(Language $languageID): self
     {
         $this->languageID = $languageID;
+        return $this;
+    }
+
+    public function getEmployeeCategoryID(): Categories
+    {
+        return $this->categoryID;
+    }
+
+    public function setEmployeeCategoryID(Categories $categoryID): self
+    {
+        $this->categoryID = $categoryID;
         return $this;
     }
 
@@ -167,14 +179,4 @@ class Employee
         return $this;
     }
 
-    public function getEmployeeCategoryID(): int
-    {
-        return $this->categoryID;
-    }
-
-    public function setEmployeeCategoryID(int $categoryID): self
-    {
-        $this->categoryID = $categoryID;
-        return $this;
-    }
 }

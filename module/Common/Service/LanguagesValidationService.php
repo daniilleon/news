@@ -66,12 +66,18 @@ class LanguagesValidationService
     }
 
 
-    public function validateLanguageID(?int $languageID): Language
+    public function validateLanguageID(mixed $languageID): Language
     {
         // Проверка на наличие LanguageID
         if ($languageID === null) {
             $this->logger->error("Field 'LanguageID' is required.");
             throw new \InvalidArgumentException("Field 'LanguageID' is required.");
+        }
+
+        // Проверка на целочисленный тип ID
+        if (!is_int($languageID)) {
+            $this->logger->error("Field 'LanguageID' must be an integer.");
+            throw new \InvalidArgumentException("Field 'LanguageID' must be an integer.");
         }
 
         // Основная проверка существования языка

@@ -5,13 +5,14 @@ namespace Module\Categories\Service;
 use InvalidArgumentException;
 use Module\Categories\Repository\CategoriesRepository;
 use Module\Categories\Repository\CategoryTranslationRepository;
-use Module\Common\Service\CategoriesValidationService;
 use Module\Languages\Repository\LanguagesRepository;
 use Module\Categories\Entity\Categories;
 use Module\Categories\Entity\CategoryTranslation;
-use Module\Languages\Entity\Language;
 use Module\Common\Service\LanguagesValidationService;
+use Module\Common\Service\CategoriesValidationService;
+use Module\Common\Service\ImageService;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class CategoriesService
 {
@@ -21,6 +22,7 @@ class CategoriesService
     private LanguagesValidationService $languagesValidationService;
     private CategoriesValidationService $categoriesValidationService;
     private LoggerInterface $logger;
+    private ImageService $imageService;
 
     public function __construct(
         CategoriesRepository $categoryRepository,
@@ -28,6 +30,7 @@ class CategoriesService
         LanguagesRepository $languageRepository,
         LanguagesValidationService $languagesValidationService,
         CategoriesValidationService $categoriesValidationService,
+        ImageService $imageService,
         LoggerInterface $logger
     ) {
         $this->categoryRepository = $categoryRepository;
@@ -35,23 +38,39 @@ class CategoriesService
         $this->languageRepository = $languageRepository;
         $this->languagesValidationService = $languagesValidationService;
         $this->categoriesValidationService = $categoriesValidationService;
+        $this->imageService = $imageService;
         $this->logger = $logger;
     }
 
 
     /**
      * Получение всех категорий.
-     *
-     * @return Categories[]
+     * @return array
      */
     public function getAllCategories(): array
     {
-        $this->logger->info("Executing getAllCategories method.");
-        $categories = $this->categoryRepository->findAllCategories();
-        // Форматируем каждую категорию и добавляем ключ для структурированного ответа
-        return [
-            'Categories' => array_map([$this->categoriesValidationService, 'formatCategoryData'], $categories)
-        ];
+        try {
+            $this->logger->info("Executing getAllCategories method.");
+            $categories = $this->categoryRepository->findAllCategories();
+
+            // Проверка, есть ли языки
+            if (empty($categories)) {
+                $this->logger->info("No Categories found in the database.");
+                return [
+                    'message' => 'No Categories found in the database.'
+                ];
+            }
+            // Форматируем каждую категорию и добавляем ключ для структурированного ответа
+            return [
+                'Categories' => array_map([$this->categoriesValidationService, 'formatCategoryData'], $categories)
+            ];
+        } catch (\InvalidArgumentException $e) {
+            $this->logger->error("Validation error while fetching categories: " . $e->getMessage());
+            throw $e;
+        } catch (\Exception $e) {
+            $this->logger->error("Unable to fetch languages: " . $e->getMessage());
+            throw new \RuntimeException("Unable to fetch categories at the moment.", 0, $e);
+        }
     }
 
     /**
@@ -208,6 +227,40 @@ class CategoriesService
         } catch (\Exception $e) {
             $this->logger->error("An unexpected error occurred while updating category link for ID $categoryId: " . $e->getMessage());
             throw new \RuntimeException("Unable to update category link", 0, $e);
+        }
+    }
+
+    //Обновление OgImage картинки у категории
+    public function updateCategoryImage(int $categoryId, ?UploadedFile $file): array
+    {
+        $this->logger->info("Executing updateCategoryImage method for Category ID: $categoryId.");
+
+        try {
+            // Проверяем, существует ли категория
+            $category = $this->categoriesValidationService->validateCategoryExists($categoryId);
+            $oldImagePath = $category->getOgImage();
+            // Загружаем новое изображение и получаем путь
+            $newImagePath = $this->imageService->uploadOgImage($file, $categoryId, 'categories', $oldImagePath);
+            // Устанавливаем новый путь для изображения
+            $category->setOgImage($newImagePath);
+
+            // Сохраняем изменения
+            $this->categoryRepository->saveCategory($category, true);
+            $this->logger->info("Image for Category ID $categoryId updated successfully.");
+
+            // Возвращаем успешный ответ с новыми данными
+            return [
+                'Category' => $this->categoriesValidationService->formatCategoryData($category),
+                'message' => 'Category image updated successfully.'
+            ];
+        } catch (\InvalidArgumentException $e) {
+            // Логируем ошибки валидации и выбрасываем исключение
+            $this->logger->error("Validation failed for updating category image: " . $e->getMessage());
+            throw $e;
+        } catch (\Exception $e) {
+            // Логируем общую ошибку
+            $this->logger->error("An unexpected error occurred while updating category image: " . $e->getMessage());
+            throw new \RuntimeException("Unable to update category image at this time.", 0, $e);
         }
     }
 

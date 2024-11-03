@@ -31,21 +31,16 @@ class EmployeesController
     #[Route('/employees', name: 'api_get_employees', methods: ['GET'])]
     public function getEmployees(): JsonResponse
     {
-        $this->logger->info("Executing getEmployees method.");
         try {
-            $employees = $this->employeeService->getAllEmployees();
-            $employeesArray = array_map([$this->employeeService, 'formatEmployeeData'], $employees);
-
-            $this->logger->info("Successfully fetched employee list.");
-            return $this->responseFactory->createSuccessResponse(['employees' => $employeesArray]);
-        } catch (InvalidArgumentException $e) {
-            $this->logger->error($e->getMessage());
-            return $this->responseFactory->createErrorResponse($e->getMessage(), JsonResponse::HTTP_BAD_REQUEST);
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
+            $this->logger->info("Executing getEmployees method.");
+            $employeesData = $this->employeeService->getAllEmployees();
+            return $this->responseFactory->createSuccessResponse($employeesData);
+        } catch (\Exception $e) {
+            $this->logger->error("Failed to fetch employees: " . $e->getMessage());
             return $this->responseFactory->createErrorResponse('Unable to fetch employees', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
 
 
     // Получение данных сотрудника по его ID.
@@ -53,137 +48,67 @@ class EmployeesController
     public function getEmployee(int $id): JsonResponse
     {
         try {
-            $employee = $this->employeeService->getEmployeeById($id);
-
-            if (!$employee) {
-                $this->logger->warning("Employee with ID $id not found.");
-                return $this->responseFactory->createNotFoundResponse("Employee with ID $id not found.");
-            }
-
-            $data = $this->employeeService->formatEmployeeData($employee);
-            $this->logger->info("Successfully fetched employee data for ID: $id");
-            return $this->responseFactory->createSuccessResponse($data);
-        } catch (InvalidArgumentException $e) {
-            // Ошибка уже залогирована в сервисе, просто возвращаем ответ
-            return $this->responseFactory->createErrorResponse($e->getMessage(), JsonResponse::HTTP_BAD_REQUEST);
-        } catch (Exception $e) {
-            // Логируем общую ошибку
-            $this->logger->error("Unable to update employee: " . $e->getMessage());
-            return $this->responseFactory->createErrorResponse('Unable to update employee', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+            $this->logger->info("Executing getEmployee method for ID: $id");
+            $employeeData = $this->employeeService->getEmployeeById($id);
+            // Возвращаем успешный ответ с данными
+            return $this->responseFactory->createSuccessResponse($employeeData);
+        } catch (\InvalidArgumentException $e) {
+            // Логирование и ответ при отсутствии сотрудника
+            $this->logger->warning($e->getMessage());
+            return $this->responseFactory->createNotFoundResponse($e->getMessage());
+        } catch (\Exception $e) {
+            // Логирование общей ошибки и возврат внутренней ошибки
+            $this->logger->error("Failed to fetch employee with ID $id: " . $e->getMessage());
+            return $this->responseFactory->createErrorResponse('Unable to fetch employee', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
-    // Добавление нового сотрудника.
+
+    // Добавление нового сотрудника
     #[Route('/employees/add', name: 'api_add_employee', methods: ['POST'])]
     public function addEmployee(Request $request): JsonResponse
     {
         try {
             $data = json_decode($request->getContent(), true);
-            $employee = $this->employeeService->addEmployee($data);
-
-            $responseData = $this->employeeService->formatEmployeeData($employee);
-            $responseData['message'] = 'Employee added successfully.';
-
-            $this->logger->info("Successfully added employee with ID: " . $employee->getEmployeeID());
+            $responseData = $this->employeeService->createEmployee($data);
             return $this->responseFactory->createCreatedResponse($responseData);
-        } catch (InvalidArgumentException $e) {
-            // Ошибка уже залогирована в сервисе, просто возвращаем ответ
+        } catch (\InvalidArgumentException $e) {
+            $this->logger->error("InvalidArgumentException caught in controller: " . $e->getMessage());
             return $this->responseFactory->createErrorResponse($e->getMessage(), JsonResponse::HTTP_BAD_REQUEST);
-        } catch (Exception $e) {
-            // Логируем общую ошибку
-            $this->logger->error("Unable to update employee: " . $e->getMessage());
-            return $this->responseFactory->createErrorResponse('Unable to update employee', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        } catch (\Exception $e) {
+            $this->logger->error("Failed to add employee: " . $e->getMessage());
+            return $this->responseFactory->createErrorResponse('Unable to add employee', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
-    // Обновление данных сотрудника по его ID.
+    // Обновление данных сотрудника
     #[Route('/employees/update/{id}', name: 'api_update_employee', methods: ['PUT'])]
     public function updateEmployee(int $id, Request $request): JsonResponse
     {
         try {
             $data = json_decode($request->getContent(), true);
-            $employee = $this->employeeService->updateEmployee($id, $data);
-
-            if (!$employee) {
-                return $this->responseFactory->createNotFoundResponse("Employee with ID $id not found.");
-            }
-
-            $responseData = $this->employeeService->formatEmployeeData($employee);
-            $responseData['message'] = 'Employee updated successfully.';
-
+            $responseData = $this->employeeService->updateEmployee($id, $data);
             return $this->responseFactory->createSuccessResponse($responseData);
-
-        } catch (InvalidArgumentException $e) {
-            // Ошибка уже залогирована в сервисе, просто возвращаем ответ
+        } catch (\InvalidArgumentException $e) {
             return $this->responseFactory->createErrorResponse($e->getMessage(), JsonResponse::HTTP_BAD_REQUEST);
-        } catch (Exception $e) {
-            // Логируем общую ошибку
-            $this->logger->error("Unable to update employee: " . $e->getMessage());
+        } catch (\Exception $e) {
+            $this->logger->error("Failed to update employee with ID $id: " . $e->getMessage());
             return $this->responseFactory->createErrorResponse('Unable to update employee', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
-    // Обновление одного конкретного поля сотрудника по его ID.
-    #[Route('/employees/update-field/{id}', name: 'api_update_employee_field', methods: ['PATCH'])]
-    public function updateEmployeeField(int $id, Request $request): JsonResponse
-    {
-        $this->logger->info("Executing updateEmployeeField method for ID: $id");
 
-        try {
-            $data = json_decode($request->getContent(), true);
-            $field = $data['field'] ?? null;
-            $value = $data['value'] ?? null;
-
-            // Обновляем конкретное поле сотрудника
-            $employee = $this->employeeService->updateEmployeeField($id, $field, $value);
-
-            if (!$employee) {
-                return $this->responseFactory->createNotFoundResponse("Employee with ID $id not found.");
-            }
-
-            // Формируем ответ с информацией об обновленном поле
-            $updatedFieldValue = ($field === 'language')
-                ? $this->employeeService->formatEmployeeData($employee)['language']
-                : $value;
-
-            return $this->responseFactory->createSuccessResponse([
-                'id' => $employee->getEmployeeID(),
-                'field' => $field,
-                'value' => $updatedFieldValue,
-                'message' => 'Employee field updated successfully.'
-            ]);
-        } catch (InvalidArgumentException $e) {
-            // Исключение уже залогировано в сервисе, просто возвращаем ответ
-            return $this->responseFactory->createErrorResponse($e->getMessage(), JsonResponse::HTTP_BAD_REQUEST);
-        } catch (Exception $e) {
-            // Логируем только общие ошибки
-            $this->logger->error("Unable to update employee field: " . $e->getMessage());
-            return $this->responseFactory->createErrorResponse('Unable to update employee field', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
-        }
-    }
-
-
-    // Удаление сотрудника по его ID.
-    #[Route('/employees/delete/{id}', name: 'api_delete_employee', methods: ['DELETE'])]
+    // Удаление сотрудника по его ID
+    #[Route('/employees/{id}/delete', name: 'api_delete_employee', methods: ['DELETE'])]
     public function deleteEmployee(int $id): JsonResponse
     {
         try {
-            $deleted = $this->employeeService->deleteEmployee($id);
-
-            if ($deleted) {
-                return $this->responseFactory->createSuccessResponse([
-                    'message' => "Employee with ID $id successfully deleted."
-                ]);
-            } else {
-                $this->logger->warning("Employee with ID $id not found for deletion.");
-                return $this->responseFactory->createNotFoundResponse("Employee with ID $id not found.");
-            }
-        } catch (InvalidArgumentException $e) {
-            // Исключение уже залогировано в сервисе, просто возвращаем ответ
+            $result = $this->employeeService->deleteEmployee($id);
+            return $this->responseFactory->createSuccessResponse($result);
+        } catch (\InvalidArgumentException $e) {
             return $this->responseFactory->createNotFoundResponse($e->getMessage());
-        } catch (Exception $e) {
-            // Логируем только общие ошибки
-            $this->logger->error("Unable to delete employee: " . $e->getMessage());
+        } catch (\Exception $e) {
+            $this->logger->error("Failed to delete employee with ID $id: " . $e->getMessage());
             return $this->responseFactory->createErrorResponse('Unable to delete employee', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }

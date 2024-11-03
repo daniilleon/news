@@ -94,17 +94,25 @@ class CategoriesValidationService
 
     /**
      * Получение и проверка существования категории по ID.
-     *
-     * @param int $id
-     * @return Categories
-     * @throws \InvalidArgumentException если категория не найдена
      */
-    public function validateCategoryExists(int $id): Categories
+    public function validateCategoryExists(mixed $categoryID): Categories
     {
-        $category = $this->categoryRepository->findCategoryById($id);
+        // Проверка на наличие CategoryID
+        if ($categoryID === null) {
+            $this->logger->error("Field 'CategoryID' is required.");
+            throw new \InvalidArgumentException("Field 'CategoryID' is required.");
+        }
+
+        // Проверка на целочисленный тип ID
+        if (!is_int($categoryID)) {
+            $this->logger->error("Field 'CategoryID' must be an integer.");
+            throw new \InvalidArgumentException("Field 'CategoryID' must be an integer.");
+        }
+
+        $category = $this->categoryRepository->findCategoryById($categoryID);
         if (!$category) {
-            $this->logger->warning("Category with ID $id not found.");
-            throw new \InvalidArgumentException("Category with ID $id not found.");
+            $this->logger->warning("Category with ID $categoryID not found.");
+            throw new \InvalidArgumentException("Category with ID $categoryID not found.");
         }
         return $category;
     }
@@ -127,9 +135,11 @@ class CategoriesValidationService
     public function formatCategoryData(Categories $category): array
     {
         return [
-            'CategoryID' => $category->getCategoryID(),
-            'CategoryLink' => $category->getCategoryLink(),
-            'CreatedDate' => $category->getCreatedDate(),
+            'Categories' => [
+                'CategoryID' => $category->getCategoryID(),
+                'CategoryLink' => $category->getCategoryLink(),
+                //'CreatedDate' => $category->getCreatedDate(),
+            ]
         ];
     }
 
@@ -148,4 +158,27 @@ class CategoriesValidationService
             'CategoryDescription' => $translation->getCategoryDescription(),
         ];
     }
+
+    public function formatCategoryMainData(Categories $category, CategoryTranslation $translation, bool $detailed = true): array
+    {
+        if ($detailed) {
+            // Возвращаем полное описание языка
+            return [
+                'Categories' => [
+                    'CategoryID' => $category->getCategoryID(),
+                    'CategoryLink' => $category->getCategoryLink(),
+                        'Translation' => [
+                            'TranslationID' => $translation->getCategoryTranslationID(),
+                            'LanguageID' => $translation->getLanguageID()->getLanguageID(),
+                            'CategoryName' => $translation->getCategoryName(),
+                            'CategoryDescription' => $translation->getCategoryDescription(),
+                        ]
+                ]
+            ];
+        } else {
+            // Возвращаем только LanguageID как отдельное поле
+            return ['CategoryID' => $category->getCategoryID()];
+        }
+    }
+
 }
