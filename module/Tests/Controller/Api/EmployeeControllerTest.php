@@ -3,9 +3,10 @@
 namespace Module\Tests\Controller\Api;
 
 use Module\Languages\Entity\Language;
+use Module\Categories\Entity\Categories;
+use Module\Employees\Entity\Employee;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
-use Module\Employees\Entity\Employee;
 
 class EmployeeControllerTest extends WebTestCase
 {
@@ -13,24 +14,32 @@ class EmployeeControllerTest extends WebTestCase
 
     protected function setUp(): void
     {
-        $this->client = static::createClient();
+        parent::setUp();
+        $this->client = self::createClient();
+        $this->clearDatabase();
     }
 
-    // Тест для получения списка сотрудников
-    public function testGetEmployees()
+    private function clearDatabase(): void
     {
-        $this->client->request('GET', '/api/employees');
-        $response = $this->client->getResponse();
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-
-        $data = json_decode($response->getContent(), true);
-        $this->assertIsArray($data);
-        $this->assertArrayHasKey('employees', $data, 'Response should contain "employees" key');
-        $this->assertIsArray($data['employees'], '"employees" should be an array');
+        $entityManager = self::getContainer()->get('doctrine')->getManager();
+        $entityManager->createQuery('DELETE FROM Module\Employees\Entity\Employee')->execute();
+        $entityManager->createQuery('DELETE FROM Module\Categories\Entity\Categories')->execute();
+        $entityManager->createQuery('DELETE FROM Module\Languages\Entity\Language')->execute();
+        $entityManager->clear();
     }
 
-    // Тест для получения отдельного сотрудника
-    public function testGetSingleEmployee(): void
+    private function createTestCategory(): Categories
+    {
+        $entityManager = self::getContainer()->get('doctrine')->getManager();
+        $category = new Categories();
+        $category->setCategoryLink("test-category");
+        $entityManager->persist($category);
+        $entityManager->flush();
+
+        return $category;
+    }
+
+    private function createTestLanguage(): Language
     {
         $entityManager = self::getContainer()->get('doctrine')->getManager();
         $language = $entityManager->getRepository(Language::class)->findOneBy(['LanguageCode' => 'EN']);
@@ -40,145 +49,165 @@ class EmployeeControllerTest extends WebTestCase
             $entityManager->persist($language);
             $entityManager->flush();
         }
+        return $language;
+    }
 
-        // Добавляем тестового сотрудника
+    private function createTestEmployee(): Employee
+    {
+        $entityManager = self::getContainer()->get('doctrine')->getManager();
+        $language = $this->createTestLanguage();
+        $category = $this->createTestCategory();
+
         $employee = new Employee();
         $employee->setEmployeeName("Test Employee")
             ->setEmployeeLink("test-employee")
             ->setEmployeeJobTitle("Tester")
             ->setEmployeeDescription("Test description")
-            ->setEmployeeCategoryID(1)
+            ->setEmployeeCategoryID($category)
             ->setEmployeeLanguageID($language);
 
         $entityManager->persist($employee);
         $entityManager->flush();
 
-        // Запрос на получение сотрудника
-        $this->client->request('GET', '/api/employees/' . $employee->getEmployeeID());
+        return $employee;
+    }
 
+    public function testGetEmployeesEmpty()
+    {
+        $this->client->request('GET', '/api/employees');
         $response = $this->client->getResponse();
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
         $data = json_decode($response->getContent(), true);
-        $this->assertNotNull($data);
-        $this->assertArrayHasKey('Employee', $data, 'Response should contain "Employee" key');
-        $this->assertEquals($employee->getEmployeeName(), $data['Employee']['EmployeeName'] ?? null);
-
-        // Удаляем тестовые данные
-        $entityManager->remove($employee);
-        $entityManager->flush();
+        $this->assertArrayHasKey('data', $data, 'Expected "data" key in the response.');
+        $this->assertArrayHasKey('employees', $data['data'], 'Expected "employees" key in the response data.');
+        $this->assertEmpty($data['data']['employees'], 'Employees list should be empty initially');
     }
 
-    // Тест для добавления сотрудника с валидными данными
-    public function testAddValidEmployee()
+    public function testGetEmployees()
     {
+        $this->createTestEmployee();
+        $this->client->request('GET', '/api/employees');
+        $response = $this->client->getResponse();
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+
+        $data = json_decode($response->getContent(), true);
+        $this->assertArrayHasKey('data', $data, 'Expected "data" key in the response.');
+        $this->assertArrayHasKey('employees', $data['data'], 'Expected "employees" key in the response data.');
+        $this->assertNotEmpty($data['data']['employees']);
+        $this->assertArrayHasKey('EmployeeID', $data['data']['employees'][0]);
+    }
+
+    public function testGetSingleEmployee(): void
+    {
+        $employee = $this->createTestEmployee();
+        $this->client->request('GET', '/api/employees/' . $employee->getEmployeeID());
+        $response = $this->client->getResponse();
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+
+        $data = json_decode($response->getContent(), true);
+        $this->assertArrayHasKey('data', $data, 'Expected "data" key in the response.');
+        $this->assertArrayHasKey('employee', $data['data'], 'Expected "employee" key in the response data.');
+        $this->assertEquals($employee->getEmployeeName(), $data['data']['employee']['EmployeeName']);
+    }
+
+    public function testGetNonExistingEmployee(): void
+    {
+        $this->client->request('GET', '/api/employees/9999');
+        $response = $this->client->getResponse();
+        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
+
+        $data = json_decode($response->getContent(), true);
+        $this->assertEquals('error', $data['status']);
+        $this->assertEquals("Employee with ID 9999 not found.", $data['message']);
+    }
+
+    public function testAddEmployee()
+    {
+        $category = $this->createTestCategory();
+        $language = $this->createTestLanguage();
+
         $this->client->request('POST', '/api/employees/add', [], [], [], json_encode([
-            'EmployeeName' => 'Jane Smith',
-            'EmployeeLink' => 'janesmith',
+            'EmployeeName' => 'Valid Employee',
+            'EmployeeLink' => 'valid-employee',
             'EmployeeJobTitle' => 'Developer',
             'EmployeeDescription' => 'Expert developer',
-            'EmployeeCategoryID' => 1,
-            'LanguageID' => 1
+            'CategoryID' => $category->getCategoryID(),
+            'LanguageID' => $language->getLanguageID()
         ]));
 
         $response = $this->client->getResponse();
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
 
         $data = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('Employee', $data);
-        $this->assertArrayHasKey('message', $data);
+        $this->assertEquals('success', $data['status']);
+        $this->assertArrayHasKey('data', $data, 'Expected "data" key in the response.');
+        $this->assertArrayHasKey('employee', $data['data'], 'Expected "employee" key in the response data.');
         $this->assertEquals('Employee added successfully.', $data['message']);
     }
 
-    // Тест для добавления сотрудника с невалидными данными (имя содержит цифры)
-    public function testAddEmployeeWithInvalidName()
+    public function testAddEmployeeInvalidData()
     {
         $this->client->request('POST', '/api/employees/add', [], [], [], json_encode([
-            'EmployeeName' => 'Jane123', // Неправильное имя
-            'EmployeeLink' => 'janesmith',
-            'EmployeeJobTitle' => 'Developer',
-            'EmployeeDescription' => 'Expert developer',
-            'EmployeeCategoryID' => 1,
+            'EmployeeName' => 'Invalid123',
+            'EmployeeLink' => 'invalid-link',
+            'EmployeeJobTitle' => '123',
+            'EmployeeDescription' => 'Description',
+            'CategoryID' => 1,
             'LanguageID' => 1
         ]));
 
         $response = $this->client->getResponse();
-        $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode(), 'Expected HTTP 400 Bad Request for invalid name');
+        $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
 
         $data = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('error', $data);
-        $this->assertEquals("Field 'EmployeeName' can contain only letters and spaces.", $data['error']);
+        $this->assertEquals('error', $data['status']);
+        $this->assertEquals("Field 'EmployeeName' can contain only letters and spaces.", $data['message']);
     }
 
-    // Тест для удаления существующего сотрудника
-    public function testDeleteEmployee()
+    public function testUpdateEmployee()
     {
-        $this->client->request('POST', '/api/employees/add', [], [], [], json_encode([
-            'EmployeeName' => 'Delete Test',
-            'EmployeeLink' => 'deletetest',
-            'EmployeeJobTitle' => 'Tester',
-            'EmployeeDescription' => 'Testing delete',
-            'EmployeeCategoryID' => 1,
-            'LanguageID' => 1
-        ]));
+        $employee = $this->createTestEmployee();
 
-        $response = $this->client->getResponse();
-        $data = json_decode($response->getContent(), true);
-        $id = $data['Employee']['EmployeeID'] ?? null;
-        $this->assertNotNull($id);
-
-        $this->client->request('DELETE', '/api/employees/' . $id . '/delete');
-        $response = $this->client->getResponse();
-        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
-
-        $data = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('message', $data);
-        $this->assertEquals("Employee with ID {$id} successfully deleted.", $data['message']);
-    }
-
-    // Тест для удаления несуществующего сотрудника
-    public function testDeleteNonExistingEmployee()
-    {
-        $this->client->request('DELETE', '/api/employees/999/delete');
-        $response = $this->client->getResponse();
-        $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
-
-        $data = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('error', $data);
-        $this->assertEquals("Employee with ID 999 not found for deletion.", $data['error']);
-    }
-
-    // Тест для обновления существующего сотрудника с валидными данными
-    public function testUpdateValidEmployee()
-    {
-        $this->client->request('POST', '/api/employees/add', [], [], [], json_encode([
-            'EmployeeName' => 'Update Test',
-            'EmployeeLink' => 'updatetest',
-            'EmployeeJobTitle' => 'Tester',
-            'EmployeeDescription' => 'Testing update',
-            'EmployeeCategoryID' => 1,
-            'LanguageID' => 1
-        ]));
-
-        $response = $this->client->getResponse();
-        $data = json_decode($response->getContent(), true);
-        $id = $data['Employee']['EmployeeID'] ?? null;
-        $this->assertNotNull($id);
-
-        $this->client->request('PUT', '/api/employees/update/' . $id, [], [], [], json_encode([
-            'EmployeeName' => 'Updated Name'
+        $this->client->request('PUT', '/api/employees/update/' . $employee->getEmployeeID(), [], [], [], json_encode([
+            'EmployeeName' => 'Updated Employee'
         ]));
 
         $response = $this->client->getResponse();
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
         $data = json_decode($response->getContent(), true);
+        $this->assertEquals('success', $data['status']);
         $this->assertEquals('Employee updated successfully.', $data['message']);
+        $this->assertArrayHasKey('data', $data, 'Expected "data" key in the response.');
+        $this->assertEquals('Updated Employee', $data['data']['employee']['EmployeeName']);
     }
 
-    protected function tearDown(): void
+    public function testDeleteEmployee(): void
     {
-        parent::tearDown();
-        $this->client = null;
+        // Создаем тестового сотрудника и получаем его ID
+        $employee = $this->createTestEmployee();
+        $employeeId = $employee->getEmployeeID();
+
+        // Отправляем DELETE-запрос на удаление сотрудника
+        $this->client->request('DELETE', '/api/employees/' . $employeeId . '/delete');
+
+        // Проверка HTTP-статуса ответа
+        $response = $this->client->getResponse();
+        $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
+
+        // Декодируем JSON-ответ
+        $data = json_decode($response->getContent(), true);
+
+        // Проверка структуры и содержания ответа
+        $this->assertArrayHasKey('status', $data, 'Expected "status" key in the response.');
+        $this->assertArrayHasKey('message', $data, 'Expected "message" key in the response.');
+        $this->assertEquals('success', $data['status'], 'Expected status to be "success".');
+
+        // Проверка на включение ID сотрудника в сообщение
+        $expectedMessage = "Employee with ID {$employeeId} successfully deleted.";
+        $this->assertEquals($expectedMessage, $data['message'], 'Expected deletion message to exactly match the expected format.');
     }
+
+
 }

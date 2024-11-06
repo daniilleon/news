@@ -29,13 +29,19 @@ doctrine:
                 is_bundle: false
                 dir: '%kernel.project_dir%/module/Employees/Entity'
                 prefix: 'Module\Employees\Entity'
-                alias: LanguagesModule
+                alias: EmployeesModule
             CategoriesModule:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/module/Categories/Entity'
                 prefix: 'Module\Categories\Entity'
                 alias: CategoriesModule
+            CountriesModule:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/module/Countries/Entity'
+                prefix: 'Module\Countries\Entity'
+                alias: CountriesModule
 
 #        controller_resolver:
 #            auto_mapping: false

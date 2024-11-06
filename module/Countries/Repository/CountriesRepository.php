@@ -1,59 +1,62 @@
 <?php
 
-namespace Module\Categories\Repository;
+namespace Module\Countries\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
-use Module\Categories\Entity\Categories;
+use Module\Countries\Entity\Countries;
 
-class CategoriesRepository extends ServiceEntityRepository
+/**
+ * @extends ServiceEntityRepository<Countries>
+ */
+class CountriesRepository extends ServiceEntityRepository
 {
     private EntityManagerInterface $entityManager;
 
     public function __construct(ManagerRegistry $registry, EntityManagerInterface $entityManager)
     {
-        parent::__construct($registry, Categories::class);
+        parent::__construct($registry, Countries::class);
         $this->entityManager = $entityManager;
     }
 
-    public function saveCategory(Categories $category, bool $flush = false): void
+    public function saveCountry(Countries $country, bool $flush = false): void
     {
-        $this->entityManager->persist($category);
+        $this->entityManager->persist($country);
         if ($flush) {
             $this->entityManager->flush();
         }
     }
 
-    public function deleteCategory(Categories $category, bool $flush = false): void
+    public function deleteCountry(Countries $country, bool $flush = false): void
     {
-        $this->entityManager->remove($category);
+        $this->entityManager->remove($country);
         if ($flush) {
             $this->entityManager->flush();
         }
     }
 
-    public function findCategoryByLink(string $categoryLink): ?Categories
+    public function findCountryByLink(string $countryLink): ?Countries
     {
         return $this->createQueryBuilder('c')
-            ->andWhere('c.categoryLink = :link')
-            ->setParameter('link', $categoryLink)
+            ->andWhere('c.countryLink = :link')
+            ->setParameter('link', $countryLink)
             ->getQuery()
             ->getOneOrNullResult();
     }
 
 
-    public function findAllCategories(): array
+    public function findAllCountries(): array
     {
         return $this->findAll() ?: [];
     }
 
-    public function findCategoryById(int $id): ?Categories
+    public function findCountryById(int $id): ?Countries
     {
         return $this->find($id);
     }
 
-    public function hasCategories(): bool
+    public function hasCountries(): bool
     {
         return !empty($this->findAll());
     }

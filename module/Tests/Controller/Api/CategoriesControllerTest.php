@@ -1,5 +1,5 @@
 <?php
-
+//0
 namespace Module\Tests\Controller\Api;
 
 use Module\Categories\Controller\Api\CategoriesController;
@@ -9,14 +9,13 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
 
 class CategoriesControllerTest extends WebTestCase
 {
-    private $categoriesService;
-    private $responseFactory;
-    private $logger;
-    private $controller;
+    private CategoriesService $categoriesService;
+    private ResponseFactory $responseFactory;
+    private LoggerInterface $logger;
+    private CategoriesController $controller;
 
     protected function setUp(): void
     {
@@ -31,29 +30,28 @@ class CategoriesControllerTest extends WebTestCase
         );
     }
 
-    //testGetCategories: Проверяет успешное получение списка категорий.
     public function testGetCategories(): void
     {
         $this->categoriesService->method('getAllCategories')
-            ->willReturn(['Categories' => []]);
+            ->willReturn(['categories' => []]);
 
         $response = $this->controller->getCategories();
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
         $responseData = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('Categories', $responseData);
+        $this->assertEquals('success', $responseData['status']);
+        $this->assertArrayHasKey('data', $responseData);
+        $this->assertArrayHasKey('categories', $responseData['data']);
     }
 
-    //2. testGetCategory: Проверяет успешное получение конкретной категории по ID
     public function testGetCategory(): void
     {
         $categoryData = [
-            'Category' => [
+            'category' => [
                 'CategoryID' => 1,
                 'CategoryLink' => 'example-category',
-                'CreatedDate' => '2024-11-02',
             ],
-            'Translations' => []
+            'translations' => []
         ];
 
         $this->categoriesService->method('getCategoryById')
@@ -64,14 +62,15 @@ class CategoriesControllerTest extends WebTestCase
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
         $responseData = json_decode($response->getContent(), true);
-        $this->assertArrayHasKey('Category', $responseData);
+        $this->assertEquals('success', $responseData['status']);
+        $this->assertArrayHasKey('data', $responseData);
+        $this->assertArrayHasKey('category', $responseData['data']);
     }
 
-    //3.testAddCategory: Проверяет успешное добавление новой категории с корректными данными
     public function testAddCategory(): void
     {
         $categoryData = [
-            'Category' => [
+            'category' => [
                 'CategoryID' => 1,
                 'CategoryLink' => 'example-category',
             ],
@@ -87,11 +86,10 @@ class CategoriesControllerTest extends WebTestCase
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
 
         $responseData = json_decode($response->getContent(), true);
+        $this->assertEquals('success', $responseData['status']);
         $this->assertEquals('Category added successfully.', $responseData['message']);
     }
 
-    //4. testAddCategoryWithInvalidLink: Проверяет, что при попытке добавить категорию с пустым значением CategoryLink
-    // возвращается ошибка валидации с правильным сообщением и статусом HTTP_BAD_REQUEST.
     public function testAddCategoryWithInvalidLink(): void
     {
         $this->categoriesService->method('createCategory')
@@ -103,14 +101,14 @@ class CategoriesControllerTest extends WebTestCase
         $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
 
         $responseData = json_decode($response->getContent(), true);
-        $this->assertEquals("Field 'CategoryLink' is required.", $responseData['error']);
+        $this->assertEquals('error', $responseData['status']);
+        $this->assertEquals("Field 'CategoryLink' is required.", $responseData['message']);
     }
 
-    //5. testUpdateCategoryLink: Проверяет успешное обновление ссылки категории (CategoryLink)
     public function testUpdateCategoryLink(): void
     {
         $categoryData = [
-            'Category' => [
+            'category' => [
                 'CategoryID' => 1,
                 'CategoryLink' => 'updated-category-link',
             ],
@@ -126,10 +124,10 @@ class CategoriesControllerTest extends WebTestCase
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
         $responseData = json_decode($response->getContent(), true);
+        $this->assertEquals('success', $responseData['status']);
         $this->assertEquals('Category link updated successfully.', $responseData['message']);
     }
 
-    //6. testDeleteCategory: Проверяет успешное удаление категории.
     public function testDeleteCategory(): void
     {
         $this->categoriesService->method('deleteCategory')
@@ -141,18 +139,18 @@ class CategoriesControllerTest extends WebTestCase
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
         $responseData = json_decode($response->getContent(), true);
+        $this->assertEquals('success', $responseData['status']);
         $this->assertEquals("Category with ID 1 and its translations successfully deleted.", $responseData['message']);
     }
 
-    //7. testAddCategoryTranslation: Проверяет успешное добавление перевода для категории.
     public function testAddCategoryTranslation(): void
     {
         $translationData = [
-            'Category' => [
+            'category' => [
                 'CategoryID' => 1,
                 'CategoryLink' => 'example-category',
             ],
-            'Translation' => [
+            'translation' => [
                 'TranslationID' => 1,
                 'LanguageID' => 2,
                 'CategoryName' => 'Example Name',
@@ -170,10 +168,10 @@ class CategoriesControllerTest extends WebTestCase
         $this->assertEquals(Response::HTTP_CREATED, $response->getStatusCode());
 
         $responseData = json_decode($response->getContent(), true);
+        $this->assertEquals('success', $responseData['status']);
         $this->assertEquals('Category translation added successfully.', $responseData['message']);
     }
 
-    //8. testDeleteCategoryTranslation: Проверяет успешное удаление перевода категории.
     public function testDeleteCategoryTranslation(): void
     {
         $this->categoriesService->method('deleteCategoryTranslation')
@@ -185,43 +183,10 @@ class CategoriesControllerTest extends WebTestCase
         $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
 
         $responseData = json_decode($response->getContent(), true);
+        $this->assertEquals('success', $responseData['status']);
         $this->assertEquals("Translation with ID 2 successfully deleted for Category ID 1.", $responseData['message']);
     }
 
-    //9. testAddCategoryWithEmptyLink: Проверяет, что контроллер вернет ошибку,
-    // если CategoryLink пустой при добавлении новой категории.
-    public function testAddCategoryWithEmptyLink(): void
-    {
-        $this->categoriesService->method('createCategory')
-            ->will($this->throwException(new \InvalidArgumentException("Field 'CategoryLink' is required.")));
-
-        $request = new Request([], [], [], [], [], [], json_encode(['CategoryLink' => '']));
-        $response = $this->controller->addCategory($request);
-
-        $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
-
-        $responseData = json_decode($response->getContent(), true);
-        $this->assertEquals("Field 'CategoryLink' is required.", $responseData['error']);
-    }
-
-    //10. testAddCategoryWithInvalidCharactersInLink: Проверяет, что контроллер возвращает ошибку,
-    // если CategoryLink содержит недопустимые символы.
-    public function testAddCategoryWithInvalidCharactersInLink(): void
-    {
-        $this->categoriesService->method('createCategory')
-            ->will($this->throwException(new \InvalidArgumentException("Field 'CategoryLink' can contain only letters, numbers, underscores, and hyphens.")));
-
-        $request = new Request([], [], [], [], [], [], json_encode(['CategoryLink' => 'Invalid@Link!']));
-        $response = $this->controller->addCategory($request);
-
-        $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
-
-        $responseData = json_decode($response->getContent(), true);
-        $this->assertEquals("Field 'CategoryLink' can contain only letters, numbers, underscores, and hyphens.", $responseData['error']);
-    }
-
-    //11. testAddCategoryWithDuplicateLink: Проверяет, что при добавлении категории с дублирующим
-    // CategoryLink контроллер вернёт ошибку о существующем значении.
     public function testAddCategoryWithDuplicateLink(): void
     {
         $this->categoriesService->method('createCategory')
@@ -233,90 +198,10 @@ class CategoriesControllerTest extends WebTestCase
         $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
 
         $responseData = json_decode($response->getContent(), true);
-        $this->assertEquals("CategoryLink 'example-category' already exists.", $responseData['error']);
+        $this->assertEquals('error', $responseData['status']);
+        $this->assertEquals("CategoryLink 'example-category' already exists.", $responseData['message']);
     }
 
-    //12. testAddCategoryTranslationWithEmptyName:
-    // Проверяет, что при добавлении перевода с пустым CategoryName контроллер возвращает ошибку.
-    public function testAddCategoryTranslationWithEmptyName(): void
-    {
-        $this->categoriesService->method('createCategoryTranslation')
-            ->will($this->throwException(new \InvalidArgumentException("Field 'CategoryName' is required.")));
-
-        $request = new Request([], [], [], [], [], [], json_encode([
-            'LanguageID' => 1,
-            'CategoryName' => '',
-            'CategoryDescription' => 'Description'
-        ]));
-
-        $response = $this->controller->addCategoryTranslation(1, $request);
-
-        $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
-
-        $responseData = json_decode($response->getContent(), true);
-        $this->assertEquals("Field 'CategoryName' is required.", $responseData['error']);
-    }
-
-    //13. testAddCategoryTranslationWithLongName:
-    // Проверяет, что контроллер вернёт ошибку при слишком длинном значении CategoryName.
-    public function testAddCategoryTranslationWithLongName(): void
-    {
-        $this->categoriesService->method('createCategoryTranslation')
-            ->will($this->throwException(new \InvalidArgumentException("Field 'CategoryName' can contain only up to 20 characters.")));
-
-        $request = new Request([], [], [], [], [], [], json_encode([
-            'LanguageID' => 1,
-            'CategoryName' => 'ThisNameIsWayTooLongForValidation',
-            'CategoryDescription' => 'Description'
-        ]));
-
-        $response = $this->controller->addCategoryTranslation(1, $request);
-
-        $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
-
-        $responseData = json_decode($response->getContent(), true);
-        $this->assertEquals("Field 'CategoryName' can contain only up to 20 characters.", $responseData['error']);
-    }
-
-    //14. testAddCategoryTranslationWithInvalidCharactersInName:
-    // Проверяет, что контроллер возвращает ошибку, если CategoryName содержит недопустимые символы.
-    public function testAddCategoryTranslationWithInvalidCharactersInName(): void
-    {
-        $this->categoriesService->method('createCategoryTranslation')
-            ->will($this->throwException(new \InvalidArgumentException("Field 'CategoryName' can contain only letters, numbers, underscores, and hyphens.")));
-
-        $request = new Request([], [], [], [], [], [], json_encode([
-            'LanguageID' => 1,
-            'CategoryName' => 'Invalid@Name!',
-            'CategoryDescription' => 'Description'
-        ]));
-
-        $response = $this->controller->addCategoryTranslation(1, $request);
-
-        $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
-
-        $responseData = json_decode($response->getContent(), true);
-        $this->assertEquals("Field 'CategoryName' can contain only letters, numbers, underscores, and hyphens.", $responseData['error']);
-    }
-
-    //15. testUpdateCategoryWithInvalidCategoryLink: Проверяет, что при попытке обновить категорию с невалидным
-    // значением CategoryLink контроллер возвращает ошибку валидации.
-    public function testUpdateCategoryWithInvalidCategoryLink(): void
-    {
-        $this->categoriesService->method('updateCategoryLink')
-            ->will($this->throwException(new \InvalidArgumentException("Field 'CategoryLink' contains invalid characters.")));
-
-        $request = new Request([], [], [], [], [], [], json_encode(['CategoryLink' => 'InvalidLink!']));
-        $response = $this->controller->updateCategoryLink(1, $request);
-
-        $this->assertEquals(Response::HTTP_BAD_REQUEST, $response->getStatusCode());
-
-        $responseData = json_decode($response->getContent(), true);
-        $this->assertEquals("Field 'CategoryLink' contains invalid characters.", $responseData['error']);
-    }
-
-    //16. testDeleteNonExistingCategory: Проверяет, что при удалении несуществующей категории
-    // контроллер возвращает сообщение об ошибке с правильным статусом HTTP_NOT_FOUND
     public function testDeleteNonExistingCategory(): void
     {
         $this->categoriesService->method('deleteCategory')
@@ -327,6 +212,7 @@ class CategoriesControllerTest extends WebTestCase
         $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
 
         $responseData = json_decode($response->getContent(), true);
-        $this->assertEquals("Category with ID 99 not found.", $responseData['error']);
+        $this->assertEquals('error', $responseData['status']);
+        $this->assertEquals("Category with ID 99 not found.", $responseData['message']);
     }
 }

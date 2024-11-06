@@ -9,6 +9,7 @@ use Module\Employees\Entity\Employee;
 use Module\Common\Service\EmployeesValidationService;
 use Module\Common\Service\CategoriesValidationService;
 use Module\Common\Service\LanguagesValidationService;
+use Module\Common\Helpers\FieldUpdateHelper;
 use Psr\Log\LoggerInterface;
 
 class EmployeesService
@@ -20,6 +21,7 @@ class EmployeesService
     private LanguagesValidationService $languagesValidationService;
     private CategoriesValidationService $categoriesValidationService;
     private EmployeesValidationService $employeesValidationService;
+    private FieldUpdateHelper $helper;
 
     public function __construct(
         EmployeesRepository $employeeRepository,
@@ -28,6 +30,7 @@ class EmployeesService
         LanguagesValidationService $languagesValidationService,
         CategoriesValidationService $categoriesValidationService,
         EmployeesValidationService $employeesValidationService,
+        FieldUpdateHelper $helper,
         LoggerInterface $logger)
     {
         $this->employeeRepository = $employeeRepository;
@@ -36,6 +39,7 @@ class EmployeesService
         $this->languagesValidationService = $languagesValidationService;
         $this->categoriesValidationService = $categoriesValidationService;
         $this->employeesValidationService = $employeesValidationService;
+        $this->helper = $helper;
         $this->logger = $logger;
         $this->logger->info("EmployeeService instance created.");
     }
@@ -53,13 +57,15 @@ class EmployeesService
             if (empty($employees)) {
                 $this->logger->info("No employees found in the database.");
                 return [
+                    'employees' => [],  // Возвращаем пустой массив вместо сообщения
                     'message' => 'No employees found in the database.'
                 ];
             }
 
             // Форматируем каждого сотрудника и добавляем ключ для структурированного ответа
             return [
-                'employees' => array_map([$this->employeesValidationService, 'formatEmployeeData'], $employees)
+                'employees' => array_map([$this->employeesValidationService, 'formatEmployeeData'], $employees),
+                'message' => 'Employees retrieved successfully.'
             ];
         } catch (\InvalidArgumentException $e) {
             $this->logger->error("Validation error while fetching employees: " . $e->getMessage());
@@ -88,7 +94,10 @@ class EmployeesService
         }
 
         // Форматирование данных сотрудника для вывода
-        return $this->employeesValidationService->formatEmployeeData($employee, true);
+        return [
+            'employee' => $this->employeesValidationService->formatEmployeeData($employee, true),
+            'message' => "Employee with ID $id retrieved successfully."
+        ];
     }
 
     /**
@@ -103,6 +112,13 @@ class EmployeesService
         try {
             // Валидация данных для сотрудника
             $this->employeesValidationService->validateEmployeeData($data);
+            // Проверка наличия EmployeeLink или его установки по умолчанию
+            $employeeLink = $data['EmployeeLink'] ?? null;  // Устанавливаем null, если ключ отсутствует
+            $this->employeesValidationService->ensureUniqueEmployeeLink($employeeLink);
+            //Валидация на проверку языка и категории
+            $this->employeesValidationService->ensureUniqueEmployeeName($data['EmployeeName'] ?? null); // Проверка обязателен ли EmployeeName
+            $this->employeesValidationService->ensureUniqueEmployeeJobTitle($data['EmployeeJobTitle'] ?? null); // Проверка обязателен ли EmployeeJobTitle
+
             $language = $this->languagesValidationService->validateLanguageID($data['LanguageID'] ?? null); // Проверка существования языка
             $category = $this->categoriesValidationService->validateCategoryExists($data['CategoryID'] ?? null); // Проверка существования категории
 
@@ -120,12 +136,13 @@ class EmployeesService
                     throw new \InvalidArgumentException("Field '$field' does not exist on Employee entity.");
                 }
             }
+            $this->helper->validateAndFilterFields($employee, array_diff_key($data, array_flip(['LanguageID', 'CategoryID'])));
             // Сохраняем сотрудника в репозитории
             $this->employeeRepository->saveEmployee($employee, true);
             $this->logger->info("Employee '{$employee->getEmployeeName()}' created successfully.");
             // Формируем и возвращаем ответ
             return [
-                'Employee' => $this->employeesValidationService->formatEmployeeData($employee, true),
+                'employee' => $this->employeesValidationService->formatEmployeeData($employee, true),
                 'message' => 'Employee added successfully.'
             ];
         } catch (\InvalidArgumentException $e) {
@@ -157,25 +174,29 @@ class EmployeesService
                 throw new \InvalidArgumentException("Employee with ID $id not found.");
             }
 
-            // Валидация данных перед обновлением сотрудника
-            $this->employeesValidationService->validateEmployeeData($data, false);
+            // Обновление EmployeeLink
+            FieldUpdateHelper::updateFieldIfPresent(
+                $employee,
+                $data,
+                'EmployeeLink',
+                fn($value) => $this->employeesValidationService->ensureUniqueEmployeeLink($value, $id)
+            );
 
-            // Обрабатываем каждый элемент в массиве данных
-//            foreach ($data as $field => $value) {
-//                $setter = 'set' . ucfirst($field);
-//                if ($field === 'LanguageID') {
-//                    $this->languagesValidationService->validateLanguageID($value); // Валидация существования языка
-//                    $language = $this->languageRepository->find($value);
-//                    $employee->setEmployeeLanguageID($language);
-//                } elseif ($field === 'EmployeeCategoryID' && is_int($value)) {
-//                    // Обрабатываем `EmployeeCategoryID` отдельно
-//                    $employee->$setter($value);
-//                } elseif (method_exists($employee, $setter)) {
-//                    $employee->$setter($value);
-//                } else {
-//                    $this->logger->warning("Setter method '$setter' does not exist for field '$field'. Skipping.");
-//                }
-//            }
+            // Обновление EmployeeName
+            FieldUpdateHelper::updateFieldIfPresent(
+                $employee,
+                $data,
+                'EmployeeName',
+                fn($value) => $this->employeesValidationService->ensureUniqueEmployeeName($value, $id)
+            );
+
+            // Обновление EmployeeJobTitle
+            FieldUpdateHelper::updateFieldIfPresent(
+                $employee,
+                $data,
+                'EmployeeJobTitle',
+                fn($value) => $this->employeesValidationService->ensureUniqueEmployeeJobTitle($value, $id)
+            );
 
             // Обновление полей сотрудника
             foreach ($data as $field => $value) {
@@ -199,13 +220,14 @@ class EmployeesService
                 }
             }
 
+            $this->helper->validateAndFilterFields($employee, array_diff_key($data, array_flip(['LanguageID', 'CategoryID'])));
             // Сохраняем изменения
             $this->employeeRepository->saveEmployee($employee, true);
             $this->logger->info("Employee with ID $id successfully updated.");
 
             // Формируем и возвращаем отформатированные данные
             return [
-                'Employee' => $this->employeesValidationService->formatEmployeeData($employee, true),
+                'employee' => $this->employeesValidationService->formatEmployeeData($employee, true),
                 'message' => 'Employee updated successfully.'
             ];
 
@@ -242,7 +264,6 @@ class EmployeesService
 
             return [
                 'message' => "Employee with ID $id successfully deleted.",
-                'status' => true,
             ];
         } catch (\InvalidArgumentException $e) {
             $this->logger->warning($e->getMessage());

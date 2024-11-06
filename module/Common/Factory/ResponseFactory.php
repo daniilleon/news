@@ -18,12 +18,47 @@ class ResponseFactory
      * Создание успешного ответа с данными.
      *
      * @param array $data
-     * @param int $statusCode
+     * @param string $defaultMessage
      * @return JsonResponse
      */
-    public function createSuccessResponse(array $data, int $statusCode = JsonResponse::HTTP_OK): JsonResponse
+
+    public function createSuccessResponse(array $data, string $defaultMessage = 'Operation successful.'): JsonResponse
     {
-        return new JsonResponse($data, $statusCode);
+        // Если сообщение присутствует внутри данных, используем его, иначе используем стандартное
+        $message = $data['message'] ?? $defaultMessage;
+
+        // Удаляем `message` из данных, чтобы избежать дублирования
+        unset($data['message']);
+
+        $response = [
+            'status' => 'success',
+            'message' => $message,
+            'data' => $data
+        ];
+        return new JsonResponse($response, JsonResponse::HTTP_OK);
+    }
+
+    /**
+     * Создание ответа для успешного создания сущности.
+     *
+     * @param array $data
+     * @param string $defaultMessage
+     * @return JsonResponse
+     */
+    public function createCreatedResponse(array $data, string $defaultMessage = 'Operation successful.'): JsonResponse
+    {
+        // Если сообщение присутствует внутри данных, используем его, иначе используем стандартное
+        $message = $data['message'] ?? $defaultMessage;
+
+        // Удаляем `message` из данных, чтобы избежать дублирования
+        unset($data['message']);
+
+        $response = [
+            'status' => 'success',
+            'message' => $message,
+            'data' => $data
+        ];
+        return new JsonResponse($response, JsonResponse::HTTP_CREATED);
     }
 
     /**
@@ -31,13 +66,51 @@ class ResponseFactory
      *
      * @param string $message
      * @param int $statusCode
+     * @param array $data Опциональные данные о ресурсе
      * @return JsonResponse
      */
-    public function createErrorResponse(string $message, int $statusCode = JsonResponse::HTTP_BAD_REQUEST): JsonResponse
+    public function createErrorResponse(string $message,
+                                        int $statusCode = JsonResponse::HTTP_BAD_REQUEST,
+                                        array $data = []): JsonResponse
     {
         $this->logger->error($message);
-        return new JsonResponse(['error' => $message], $statusCode);
+
+        $response = [
+            'status' => 'error',
+            'message' => $message,
+        ];
+
+
+        if (!empty($data)) {
+            $response['data'] = $data;
+        }
+
+        return new JsonResponse($response, $statusCode);
     }
+
+    /**
+     * Создание ответа для случая, когда ресурс не найден.
+     *
+     * @param string $message
+     * @param array $data Опциональные данные о ресурсе
+     * @return JsonResponse
+     */
+    public function createNotFoundResponse(string $message, array $data = []): JsonResponse
+    {
+        $this->logger->info($message);
+
+        $response = [
+            'status' => 'error',
+            'message' => $message,
+        ];
+
+        if (!empty($data)) {
+            $response['data'] = $data;
+        }
+
+        return new JsonResponse($response, JsonResponse::HTTP_NOT_FOUND);
+    }
+
 
     /**
      * Создание ответа с валидационной ошибкой.
@@ -51,26 +124,4 @@ class ResponseFactory
         return new JsonResponse(['validation_errors' => $validationErrors], JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
     }
 
-    /**
-     * Создание ответа для успешного создания сущности.
-     *
-     * @param array $data
-     * @return JsonResponse
-     */
-    public function createCreatedResponse(array $data, int $statusCode = JsonResponse::HTTP_CREATED): JsonResponse
-    {
-        return new JsonResponse($data, $statusCode);
-    }
-
-    /**
-     * Создание ответа для случая, когда ресурс не найден.
-     *
-     * @param string $message
-     * @return JsonResponse
-     */
-    public function createNotFoundResponse(string $message): JsonResponse
-    {
-        $this->logger->info($message);
-        return new JsonResponse(['error' => $message], JsonResponse::HTTP_NOT_FOUND);
-    }
 }

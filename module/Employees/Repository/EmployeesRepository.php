@@ -43,10 +43,20 @@ class EmployeesRepository extends ServiceEntityRepository
         return $this->find($id);
     }
 
+    public function findEmployeeByLink(string $employeeLink): ?Employee
+    {
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.employeeLink = :employeeLink')
+            ->setParameter('employeeLink', $employeeLink)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     public function hasEmployees(): bool
     {
         return !empty($this->findAll());
     }
+
 
     public function findEmployeesByCategory(int $categoryID): array
     {

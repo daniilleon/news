@@ -28,18 +28,12 @@ class CategoriesValidationService
     /**
      * Валидация поля CategoryLink.
      *
-     * @param string $categoryLink
-     * @param bool $isNew
+     * @param array $data
      * @throws \InvalidArgumentException если данные не валидны
      */
-    public function validateCategoryLink(string $categoryLink, bool $isNew = true): void
+    public function validateCategoryLink(array $data): void
     {
-        if ($isNew && empty(trim($categoryLink))) {
-            $this->logger->error("CategoryLink is required.");
-            throw new \InvalidArgumentException("Field 'CategoryLink' is required.");
-        }
-
-        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $categoryLink)) {
+        if (!empty($data['CategoryLink']) &&!preg_match('/^[a-zA-Z0-9_-]+$/', $data['CategoryLink'])) {
             $this->logger->error("Invalid characters in CategoryLink.");
             throw new \InvalidArgumentException("Field 'CategoryLink' can contain only letters, numbers, underscores, and hyphens.");
         }
@@ -50,17 +44,23 @@ class CategoriesValidationService
      */
     public function validateCategoryTranslationData(array $data): void
     {
+        // Проверка допустимых символов и длины для CategoryName, если он передан
         if (isset($data['CategoryName'])) {
             $categoryName = $data['CategoryName'];
-            if (empty(trim($categoryName))) {
-                $this->logger->error("CategoryName is required.");
-                throw new \InvalidArgumentException("Field 'CategoryName' is required.");
-            }
+
+            // Проверка на допустимые символы и длину
             if (!preg_match('/^[\p{L}0-9 _-]{1,20}$/u', $categoryName)) {
                 $this->logger->error("Invalid characters or length in CategoryName.");
                 throw new \InvalidArgumentException("Field 'CategoryName' can contain only letters, numbers, underscores, hyphens, spaces, and must be no more than 20 characters long.");
             }
+
+            // Проверка, что CategoryName не состоит только из цифр
+            if (preg_match('/^\d+$/', $categoryName)) {
+                $this->logger->error("CategoryName cannot consist only of numbers.");
+                throw new \InvalidArgumentException("Field 'CategoryName' cannot consist only of numbers.");
+            }
         }
+
 
         // Если нужна проверка других полей, добавляем их сюда
         if (isset($data['CategoryDescription']) && strlen($data['CategoryDescription']) > 500) { // пример ограничения
@@ -79,7 +79,7 @@ class CategoriesValidationService
     public function ensureUniqueCategoryLink(?string $categoryLink, ?int $excludeId = null): void
     {
         // Проверка, что CategoryLink передан
-        if ($categoryLink === null) {
+        if (empty($categoryLink)) {
             $this->logger->error("Field 'CategoryLink' is required.");
             throw new \InvalidArgumentException("Field 'CategoryLink' is required.");
         }
@@ -90,6 +90,23 @@ class CategoriesValidationService
             $this->logger->error("Duplicate CategoryLink found: " . $categoryLink);
             throw new \InvalidArgumentException("CategoryLink '{$categoryLink}' already exists.");
         }
+    }
+
+    /**
+     * Проверка на уникальность CategoryName.
+     *
+     * @param string array $data
+     * @param int|null $excludeId ID категории для исключения (например, при обновлении)
+     * @throws \InvalidArgumentException если такой CategoryLink уже существует
+     */
+    public function ensureUniqueCategoryName(?string $categoryName, ?int $excludeId = null): void
+    {
+        // Проверка обязательности поля CategoryName
+        if (empty($categoryName)) {
+            $this->logger->error("CategoryName is required.");
+            throw new \InvalidArgumentException("Field 'CategoryName' is required and cannot be empty.");
+        }
+
     }
 
     /**
@@ -117,6 +134,9 @@ class CategoriesValidationService
         return $category;
     }
 
+    /**
+     * Получение и проверка уникальности перевода.
+     */
     public function ensureUniqueTranslation(Categories $category, Language $language): void
     {
         $existingTranslation = $this->translationRepository->findTranslationByCategoryAndLanguage($category, $language);
@@ -132,15 +152,21 @@ class CategoriesValidationService
      * @param Categories $category
      * @return array
      */
-    public function formatCategoryData(Categories $category): array
+    public function formatCategoryData(Categories $category, bool $detail = false): array
     {
-        return [
-            'Categories' => [
+        if($detail) {
+            return [
+                'Categories' => [
+                    'CategoryID' => $category->getCategoryID(),
+                    'CategoryLink' => $category->getCategoryLink(),
+                ]
+            ];
+        } else {
+            return [
                 'CategoryID' => $category->getCategoryID(),
                 'CategoryLink' => $category->getCategoryLink(),
-                //'CreatedDate' => $category->getCreatedDate(),
-            ]
-        ];
+            ];
+        }
     }
 
     /**

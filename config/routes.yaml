@@ -19,3 +19,7 @@ employee_controller:
 categories_controller:
     resource: '../module/Categories/Controller/Api/'
     type: attribute
+
+countries_controller:
+    resource: '../module/Countries/Controller/Api/'
+    type: attribute

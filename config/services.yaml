@@ -40,6 +40,10 @@ services:
         tags: [ 'controller.service_arguments' ]
         public: true
 
+    Module\Countries\Controller\Api\CountriesController:
+        tags: [ 'controller.service_arguments' ]
+        public: true
+
 
 
     # add more service definitions when explicit configuration is needed

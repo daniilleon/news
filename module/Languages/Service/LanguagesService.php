@@ -6,6 +6,7 @@ use Exception;
 use Module\Languages\Repository\LanguagesRepository;
 use Module\Languages\Entity\Language;
 use Module\Common\Service\LanguagesValidationService;
+use Module\Common\Helpers\FieldUpdateHelper;
 use Psr\Log\LoggerInterface;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 
@@ -13,16 +14,19 @@ class LanguagesService
 {
     private LanguagesRepository $languageRepository;
     private LanguagesValidationService $languagesValidationService;
+    private FieldUpdateHelper $helper;
     private LoggerInterface $logger;
 
     public function __construct(
         LanguagesRepository $languageRepository,
         LanguagesValidationService $languagesValidationService,
+        FieldUpdateHelper $helper,
         LoggerInterface $logger
     ) {
         $this->languageRepository = $languageRepository;
         $this->languagesValidationService = $languagesValidationService;
         $this->logger = $logger;
+        $this->helper = $helper;
         $this->logger->info("LanguagesService instance created.");
     }
 
@@ -49,12 +53,14 @@ class LanguagesService
             if (empty($languages)) {
                 $this->logger->info("No languages found in the database.");
                 return [
+                    'languages' => [],
                     'message' => 'No languages found in the database.'
                 ];
             }
             // Возвращаем список языков, если они существуют
             return [
-                'languages' => array_map([$this->languagesValidationService, 'formatLanguageData'], $languages)
+                'languages' => array_map([$this->languagesValidationService, 'formatLanguageData'], $languages),
+                'message' => 'Languages retrieved successfully.'
             ];
         } catch (\InvalidArgumentException $e) {
             $this->logger->error("Validation error while fetching languages: " . $e->getMessage());
@@ -76,7 +82,10 @@ class LanguagesService
                 $this->logger->info("Language with ID $id not found.");
                 throw new \InvalidArgumentException("Language with ID $id not found.");
             }
-            return $this->languagesValidationService->formatLanguageData($language);
+            return [
+                'language' => $this->languagesValidationService->formatLanguageData($language),
+                'message' => "Language with ID $id retrieved successfully."
+            ];
         } catch (\InvalidArgumentException $e) {
             $this->logger->error("Validation error while fetching language by ID: " . $e->getMessage());
             throw $e;
@@ -112,6 +121,7 @@ class LanguagesService
                 ->setLanguageCode(strtoupper($languageCode))
                 ->setLanguageName($languageName);
 
+            $this->helper->validateAndFilterFields($language, $data);//проверяем список разрешенных полей
             $this->languageRepository->saveLanguage($language, true);
             $this->logger->info("Language '$languageName' with code '$languageCode' successfully added.");
 
@@ -151,6 +161,7 @@ class LanguagesService
             $language->setLanguageCode(strtoupper($languageCode))
                 ->setLanguageName($languageName);
 
+            $this->helper->validateAndFilterFields($language, $data);//проверяем список разрешенных полей
             $this->languageRepository->saveLanguage($language, true);
             $this->logger->info("Language with ID $id successfully updated.");
 
@@ -199,15 +210,5 @@ class LanguagesService
     {
         $this->languagesValidationService->validateLanguageCode($languageCode);
         $this->languagesValidationService->validateLanguageName($languageName);
-    }
-
-    // Форматирование данных языка для API
-    public function formatLanguageData(Language $language): array
-    {
-        return [
-            'LanguageID' => $language->getLanguageID(),
-            'LanguageCode' => $language->getLanguageCode(),
-            'LanguageName' => $language->getLanguageName(),
-        ];
     }
 }

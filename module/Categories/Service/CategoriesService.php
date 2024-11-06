@@ -2,7 +2,6 @@
 
 namespace Module\Categories\Service;
 
-use InvalidArgumentException;
 use Module\Categories\Repository\CategoriesRepository;
 use Module\Categories\Repository\CategoryTranslationRepository;
 use Module\Languages\Repository\LanguagesRepository;
@@ -11,6 +10,7 @@ use Module\Categories\Entity\CategoryTranslation;
 use Module\Common\Service\LanguagesValidationService;
 use Module\Common\Service\CategoriesValidationService;
 use Module\Common\Service\ImageService;
+use Module\Common\Helpers\FieldUpdateHelper;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -23,6 +23,7 @@ class CategoriesService
     private CategoriesValidationService $categoriesValidationService;
     private LoggerInterface $logger;
     private ImageService $imageService;
+    private FieldUpdateHelper $helper;
 
     public function __construct(
         CategoriesRepository $categoryRepository,
@@ -31,6 +32,7 @@ class CategoriesService
         LanguagesValidationService $languagesValidationService,
         CategoriesValidationService $categoriesValidationService,
         ImageService $imageService,
+        FieldUpdateHelper $helper,
         LoggerInterface $logger
     ) {
         $this->categoryRepository = $categoryRepository;
@@ -39,6 +41,7 @@ class CategoriesService
         $this->languagesValidationService = $languagesValidationService;
         $this->categoriesValidationService = $categoriesValidationService;
         $this->imageService = $imageService;
+        $this->helper = $helper;
         $this->logger = $logger;
     }
 
@@ -57,12 +60,14 @@ class CategoriesService
             if (empty($categories)) {
                 $this->logger->info("No Categories found in the database.");
                 return [
+                    'categories' => [],
                     'message' => 'No Categories found in the database.'
                 ];
             }
             // Форматируем каждую категорию и добавляем ключ для структурированного ответа
             return [
-                'Categories' => array_map([$this->categoriesValidationService, 'formatCategoryData'], $categories)
+                'categories' => array_map([$this->categoriesValidationService, 'formatCategoryData'], $categories),
+                'message' => 'Categories retrieved successfully.'
             ];
         } catch (\InvalidArgumentException $e) {
             $this->logger->error("Validation error while fetching categories: " . $e->getMessage());
@@ -87,8 +92,9 @@ class CategoriesService
         $translations = $this->translationRepository->findTranslationsByCategory($category);
         // Форматируем данные категории и переводов
         return [
-            'Category' => $this->categoriesValidationService->formatCategoryData($category),
-            'Translations' => array_map([$this->categoriesValidationService, 'formatCategoryTranslationData'], $translations)
+            'category' => $this->categoriesValidationService->formatCategoryData($category),
+            'translations' => array_map([$this->categoriesValidationService, 'formatCategoryTranslationData'], $translations),
+            'message' => "Category with ID $id retrieved successfully."
         ];
     }
 
@@ -103,10 +109,12 @@ class CategoriesService
         $this->logger->info("Executing createCategory method.");
         try {
             // Валидация данных для категории
-            $this->categoriesValidationService->validateCategoryLink($data['CategoryLink'] ?? '', true);
-            $this->categoriesValidationService->ensureUniqueCategoryLink($data['CategoryLink']);
+            $this->categoriesValidationService->validateCategoryLink($data);
+            $this->categoriesValidationService->ensureUniqueCategoryLink($data['CategoryLink'] ?? null);
+
             // Создаем новую категорию
             $category = new Categories();
+            $this->helper->validateAndFilterFields($category, $data);//проверяем список разрешенных полей
             $category->setCategoryLink($data['CategoryLink']);
 
             // Сохраняем категорию в репозитории
@@ -115,7 +123,7 @@ class CategoriesService
 
             // Форматируем ответ
             return [
-                'Category' => $this->categoriesValidationService->formatCategoryData($category),
+                'category' => $this->categoriesValidationService->formatCategoryData($category),
                 'message' => 'Category added successfully.'
             ];
         } catch (\InvalidArgumentException $e) {
@@ -145,9 +153,10 @@ class CategoriesService
             // Проверяем существование категории
             $category = $this->categoriesValidationService->validateCategoryExists($categoryId);
 
-            // Проверяем наличие CategoryName и LanguageID и выполняем валидацию
+            // Проверяем наличие выполняем валидацию
             $this->categoriesValidationService->validateCategoryTranslationData($data);
-
+            // Проверяем обязательность поля CategoryName
+            $this->categoriesValidationService->ensureUniqueCategoryName($data['CategoryName'] ?? null);
             // Проверка на наличие LanguageID и указать, что это обязательный параметр
             $language = $this->languagesValidationService->validateLanguageID($data['LanguageID']  ?? null);
 
@@ -156,6 +165,7 @@ class CategoriesService
 
             // Создание нового перевода
             $translation = new CategoryTranslation();
+            $this->helper->validateAndFilterFields($translation, $data);//проверяем список разрешенных полей
             $translation->setCategoryID($category);
             $translation->setLanguageID($language);
 
@@ -168,14 +178,14 @@ class CategoriesService
                     throw new \InvalidArgumentException("Field '$field' does not exist on CategoryTranslation entity.");
                 }
             }
-
+            $this->helper->validateAndFilterFields($translation, $data);//проверяем список разрешенных полей
             // Сохранение перевода
             $this->translationRepository->saveCategoryTranslation($translation, true);
             $this->logger->info("Translation for Category ID $categoryId created successfully.");
 
             return [
-                'Category' => $this->categoriesValidationService->formatCategoryData($category),
-                'Translation' => $this->categoriesValidationService->formatCategoryTranslationData($translation),
+                'category' => $this->categoriesValidationService->formatCategoryData($category),
+                'translation' => $this->categoriesValidationService->formatCategoryTranslationData($translation),
                 'message' => 'Category translation added successfully.'
             ];
 
@@ -197,28 +207,28 @@ class CategoriesService
         try {
             // Получаем категорию по ID и проверяем ее существование
             $category = $this->categoriesValidationService->validateCategoryExists($categoryId);
-            // Проверка на обязательность и уникальность CategoryLink
-            $this->categoriesValidationService->ensureUniqueCategoryLink($data['CategoryLink'] ?? null, $categoryId);
-            // Проверка валидности ссылки
-            $this->categoriesValidationService->validateCategoryLink($data['CategoryLink'], false);
-
-            // Проверка, изменился ли CategoryLink
-            if ($category->getCategoryLink() === $data['CategoryLink']) {
-                $this->logger->info("Category link for Category ID $categoryId remains unchanged.");
-                return [
-                    'Category' => $this->categoriesValidationService->formatCategoryData($category),
-                    'message' => 'Category link is the same, no update was made.'
-                ];
+            if (!$category) {
+                $this->logger->warning("Category with ID $categoryId not found for updating.");
+                throw new \InvalidArgumentException("Category with ID $categoryId not found.");
             }
+            // Используем FieldUpdateHelper для обновления поля CategoryLink с проверками
+            FieldUpdateHelper::updateFieldIfPresent(
+                $category,
+                $data,
+                'CategoryLink',
+                function ($newLink) use ($categoryId) {
+                    $this->categoriesValidationService->ensureUniqueCategoryLink($newLink, $categoryId);
+                    $this->categoriesValidationService->validateCategoryLink(['CategoryLink' => $newLink]);
+                }
+            );
 
-            // Обновление ссылки
-            $category->setCategoryLink($data['CategoryLink']);
+            $this->helper->validateAndFilterFields($category, $data);//проверяем список разрешенных полей
             $this->categoryRepository->saveCategory($category, true);
 
             $this->logger->info("Category link updated successfully for Category ID: $categoryId");
 
             return [
-                'Category' => $this->categoriesValidationService->formatCategoryData($category),
+                'category' => $this->categoriesValidationService->formatCategoryData($category),
                 'message' => 'Category link updated successfully.'
             ];
         } catch (\InvalidArgumentException $e) {
@@ -250,7 +260,7 @@ class CategoriesService
 
             // Возвращаем успешный ответ с новыми данными
             return [
-                'Category' => $this->categoriesValidationService->formatCategoryData($category),
+                'category' => $this->categoriesValidationService->formatCategoryData($category),
                 'message' => 'Category image updated successfully.'
             ];
         } catch (\InvalidArgumentException $e) {
@@ -281,9 +291,18 @@ class CategoriesService
 
             // Проверка, что LanguageID не был передан в запросе
             $this->languagesValidationService->checkImmutableLanguageID($data, $translationId);
-
             // Валидация всех данных, переданных в $data
             $this->categoriesValidationService->validateCategoryTranslationData($data);
+
+            // Обновление поля CategoryName с проверкой уникальности и наличия
+            FieldUpdateHelper::updateFieldIfPresent(
+                $translation,
+                $data,
+                'CategoryName',
+                function ($newName) use ($translationId) {
+                    $this->categoriesValidationService->ensureUniqueCategoryName($newName, $translationId);
+                }
+            );
 
             // Обновление полей перевода, игнорируя LanguageID
             foreach ($data as $field => $value) {
@@ -294,13 +313,13 @@ class CategoriesService
                     throw new \InvalidArgumentException("Field '$field' does not exist on CategoryTranslation entity.");
                 }
             }
-
+            $this->helper->validateAndFilterFields($translation, $data);//проверяем список разрешенных полей
             $this->translationRepository->saveCategoryTranslation($translation, true);
             $this->logger->info("Translation updated successfully for Category ID: $categoryId and Translation ID: $translationId");
 
             return [
-                'Category' => $this->categoriesValidationService->formatCategoryData($category),
-                'Translation' => $this->categoriesValidationService->formatCategoryTranslationData($translation),
+                'category' => $this->categoriesValidationService->formatCategoryData($category),
+                'translation' => $this->categoriesValidationService->formatCategoryTranslationData($translation),
                 'message' => 'Category translation updated successfully.'
             ];
         } catch (\InvalidArgumentException $e) {
@@ -315,7 +334,7 @@ class CategoriesService
     /**
      * Удаление перевода категории.
      *
-     * @param int $id
+     * @param int $categoryId
      * @param int $translationId
      * @return array
      */
@@ -340,7 +359,6 @@ class CategoriesService
 
             return [
                 'message' => "Translation with ID $translationId successfully deleted for Category ID $categoryId.",
-                'status' => true,
             ];
         } catch (\InvalidArgumentException $e) {
             $this->logger->warning($e->getMessage());
@@ -355,15 +373,15 @@ class CategoriesService
     /**
      * Удаление категории.
      *
-     * @param int $id
+     * @param int $categoryId
      * @return array
      */
-    public function deleteCategory(int $id): array
+    public function deleteCategory(int $categoryId): array
     {
         try {
-            $this->logger->info("Executing deleteCategory method for ID: $id");
+            $this->logger->info("Executing deleteCategory method for ID: $categoryId");
 
-            $category = $this->categoriesValidationService->validateCategoryExists($id);
+            $category = $this->categoriesValidationService->validateCategoryExists($categoryId);
 
 
             // Удаляем переводы категории
@@ -374,18 +392,18 @@ class CategoriesService
 
             // Удаляем саму категорию
             $this->categoryRepository->deleteCategory($category, true);
-            $this->logger->info("Category with ID $id and its translations successfully deleted.");
+            $this->logger->info("Category with ID $categoryId and its translations successfully deleted.");
 
             return [
-                'message' => "Category with ID $id and its translations successfully deleted.",
-                'status' => true,
+                'message' => "Category with ID $categoryId and its translations successfully deleted.",
             ];
         } catch (\InvalidArgumentException $e) {
             $this->logger->warning($e->getMessage());
             throw $e;
         } catch (\Exception $e) {
-            $this->logger->error("An unexpected error occurred while deleting category with ID $id: " . $e->getMessage());
+            $this->logger->error("An unexpected error occurred while deleting category with ID $categoryId: " . $e->getMessage());
             throw $e;
         }
     }
+
 }
