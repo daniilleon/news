@@ -24,12 +24,22 @@ doctrine:
                 dir: '%kernel.project_dir%/module/Languages/Entity'
                 prefix: 'Module\Languages\Entity'
                 alias: LanguagesModule
+
+            #Модули сотрудника начало
             EmployeesModule:
                 type: attribute
                 is_bundle: false
                 dir: '%kernel.project_dir%/module/Employees/Entity'
                 prefix: 'Module\Employees\Entity'
                 alias: EmployeesModule
+            EmployeesModule_JobTitle:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/module/Employees/EmployeesJobTitle/Entity'
+                prefix: 'Module\Employees\EmployeesJobTitle\Entity'
+                alias: EmployeesModule_JobTitle
+            #Модули сотрудника конец
+
             CategoriesModule:
                 type: attribute
                 is_bundle: false
@@ -42,6 +52,22 @@ doctrine:
                 dir: '%kernel.project_dir%/module/Countries/Entity'
                 prefix: 'Module\Countries\Entity'
                 alias: CountriesModule
+
+
+                # Добавляем подмодули для Person
+                #PersonModule_RoleStatus:
+                #    type: attribute
+                #    is_bundle: false
+                #    dir: '%kernel.project_dir%/module/Person/RoleStatus/Entity'
+                #    prefix: 'Module\Person\RoleStatus\Entity'
+                #    alias: PersonModule_RoleStatus
+
+                #PersonModule_CompanyRoles:
+                #    type: attribute
+                #    is_bundle: false
+                #    dir: '%kernel.project_dir%/module/Person/CompanyRoles/Entity'
+                #    prefix: 'Module\Person\CompanyRoles\Entity'
+                #    alias: PersonModule_CompanyRoles
 
 #        controller_resolver:
 #            auto_mapping: false

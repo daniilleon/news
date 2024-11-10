@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Module\Common\Factory\ResponseFactory;
 
 // Основной контроллер API для работы с категориями.
-#[Route('/api')]
+#[Route('/api/categories')]
 class CategoriesController
 {
     private CategoriesService $categoriesService;
@@ -28,7 +28,7 @@ class CategoriesController
     }
 
     // Получение списка всех категорий.
-    #[Route('/categories', name: 'api_get_categories', methods: ['GET'])]
+    #[Route('/', name: 'api_get_categories', methods: ['GET'])]
     public function getCategories(): JsonResponse
     {
         try {
@@ -42,7 +42,7 @@ class CategoriesController
     }
 
     // Получение данных категории по ее ID.
-    #[Route('/categories/{categoryId}', name: 'api_get_category', methods: ['GET'])]
+    #[Route('/{categoryId}', name: 'api_get_category', methods: ['GET'])]
     public function getCategory(int $categoryId): JsonResponse
     {
         try {
@@ -59,7 +59,7 @@ class CategoriesController
     }
 
     // Создание новой категории.
-    #[Route('/categories/add', name: 'api_add_category', methods: ['POST'])]
+    #[Route('/add', name: 'api_add_category', methods: ['POST'])]
     public function addCategory(Request $request): JsonResponse
     {
         try {
@@ -75,7 +75,7 @@ class CategoriesController
         }
     }
 
-    #[Route('/categories/{categoryId}/upload-image', name: 'api_update_category_image', methods: ['POST'])]
+    #[Route('/{categoryId}/upload-image', name: 'api_update_category_image', methods: ['POST'])]
     public function updateCategoryImage(int $categoryId, Request $request): JsonResponse
     {
         try {
@@ -95,7 +95,7 @@ class CategoriesController
 
 
     // Добавление перевода для категории.
-    #[Route('/categories/{categoryId}/add-translation', name: 'api_add_category_translation', methods: ['POST'])]
+    #[Route('/{categoryId}/add-translation', name: 'api_add_category_translation', methods: ['POST'])]
     public function addCategoryTranslation(int $categoryId, Request $request): JsonResponse
     {
         try {
@@ -111,7 +111,7 @@ class CategoriesController
     }
 
     // Обновление только основной категории (ссылки)
-    #[Route('/categories/{categoryId}/update', name: 'api_update_category', methods: ['PUT'])]
+    #[Route('/{categoryId}/update', name: 'api_update_category', methods: ['PUT'])]
     public function updateCategoryLink(int $categoryId, Request $request): JsonResponse
     {
         try {
@@ -127,7 +127,7 @@ class CategoriesController
     }
 
     // Обновление перевода категории для указанного языка
-    #[Route('/categories/{categoryId}/update-translation/{translationId}', name: 'api_update_category_translation', methods: ['PUT'])]
+    #[Route('/{categoryId}/update-translation/{translationId}', name: 'api_update_category_translation', methods: ['PUT'])]
     public function updateCategoryTranslation(int $categoryId, int $translationId, Request $request): JsonResponse
     {
         try {
@@ -143,7 +143,7 @@ class CategoriesController
     }
 
     // Удаление конкретного перевода категории по его ID.
-    #[Route('/categories/{categoryId}/delete-translation/{translationId}', name: 'api_delete_category_translation', methods: ['DELETE'])]
+    #[Route('/{categoryId}/delete-translation/{translationId}', name: 'api_delete_category_translation', methods: ['DELETE'])]
     public function deleteCategoryTranslation(int $categoryId, int $translationId): JsonResponse
     {
         try {
@@ -158,7 +158,7 @@ class CategoriesController
     }
 
     // Удаление категории по ее ID.
-    #[Route('/categories/{id}/delete/', name: 'api_delete_category', methods: ['DELETE'])]
+    #[Route('/{id}/delete/', name: 'api_delete_category', methods: ['DELETE'])]
     public function deleteCategory(int $id): JsonResponse
     {
         try {
@@ -169,6 +169,18 @@ class CategoriesController
         } catch (\Exception $e) {
             $this->logger->error("Failed to delete category with ID $id: " . $e->getMessage());
             return $this->responseFactory->createErrorResponse('Unable to delete category', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    #[Route('/seed', name: 'api_seed_categories_and_translations', methods: ['POST'])]
+    public function seedCategoriesAndTranslations(): JsonResponse
+    {
+        try {
+            $result = $this->categoriesService->seedCategoriesAndTranslations();
+            return $this->responseFactory->createCreatedResponse($result);
+        } catch (\Exception $e) {
+            $this->logger->error("Failed to seed categories and translations: " . $e->getMessage());
+            return $this->responseFactory->createErrorResponse('Unable to seed categories and translations', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 

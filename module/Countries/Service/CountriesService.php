@@ -211,6 +211,16 @@ class CountriesService
                 $this->logger->warning("Country with ID $countryId not found for updating.");
                 throw new \InvalidArgumentException("Country with ID $countryId not found.");
             }
+
+            // Проверка наличия обязательных полей и их значений (в данных или в объекте)
+            $requiredFields = ['CountryLink'];
+            foreach ($requiredFields as $field) {
+                $value = $data[$field] ?? $country->{'get' . $field}();
+                if (empty($value)) {
+                    throw new \InvalidArgumentException("Field '$field' is required and cannot be empty.");
+                }
+            }
+
             // Используем FieldUpdateHelper для обновления поля CountryLink с проверками
             FieldUpdateHelper::updateFieldIfPresent(
                 $country,
@@ -291,6 +301,15 @@ class CountriesService
 
             // Проверка, что LanguageID не был передан в запросе
             $this->languagesValidationService->checkImmutableLanguageID($data, $translationId);
+
+            // Проверка наличия обязательных полей и их значений (в данных или в объекте)
+            $requiredFields = ['CountryName'];
+            foreach ($requiredFields as $field) {
+                $value = $data[$field] ?? $translation->{'get' . $field}();
+                if (empty($value)) {
+                    throw new \InvalidArgumentException("Field '$field' is required and cannot be empty.");
+                }
+            }
             // Валидация всех данных, переданных в $data
             $this->countriesValidationService->validateCountryTranslationData($data);
 
@@ -405,5 +424,131 @@ class CountriesService
             throw $e;
         }
     }
+
+
+    //Методы заполнения демо данными
+    public function seedCountries(): array
+    {
+        $this->logger->info("Executing seedCountries method.");
+
+        // Предустановленные данные стран
+        $countriesData = [
+            ["CountryLink" => "russia"],
+            ["CountryLink" => "uae"]
+        ];
+
+        $createdCountries = [];
+
+        foreach ($countriesData as $countryData) {
+            try {
+                // Валидация и проверка уникальности CountryLink
+                $this->countriesValidationService->validateCountryLink($countryData);
+                $this->countriesValidationService->ensureUniqueCountryLink($countryData['CountryLink']);
+
+                // Создание новой страны
+                $country = new Countries();
+                $country->setCountryLink($countryData['CountryLink']);
+                $this->countryRepository->saveCountry($country, true);
+
+                $createdCountries[] = $this->countriesValidationService->formatCountryData($country);
+                $this->logger->info("Country '{$countryData['CountryLink']}' created successfully.");
+            } catch (\InvalidArgumentException $e) {
+                $this->logger->warning("Country '{$countryData['CountryLink']}' already exists or invalid. Skipping.");
+            } catch (\Exception $e) {
+                $this->logger->error("Unexpected error creating country '{$countryData['CountryLink']}': " . $e->getMessage());
+            }
+        }
+
+        return $createdCountries;
+    }
+
+    public function seedTranslations(): array
+    {
+        $this->logger->info("Executing seedTranslations method.");
+
+        // Предустановленные данные переводов, ссылающиеся на CountryID
+        $translationsData = [
+            1 => [ // Предполагается, что CountryID 1 соответствует "first"
+                [
+                    "CountryName" => "Россия",
+                    "CountryDescription" => "Описание для страны Russia",
+                    "LanguageID" => 2
+                ],
+                [
+                    "CountryName" => "Russia",
+                    "CountryDescription" => "Description for Russia country",
+                    "LanguageID" => 1
+                ]
+            ],
+            2 => [ // Предполагается, что CountryID 2 соответствует "second"
+                [
+                    "CountryName" => "ОАЭ",
+                    "CountryDescription" => "Описание для страны UAE",
+                    "LanguageID" => 2
+                ],
+                [
+                    "CountryName" => "UAE",
+                    "CountryDescription" => "Description for UAE country",
+                    "LanguageID" => 1
+                ]
+            ]
+        ];
+
+        $createdTranslations = [];
+
+        foreach ($translationsData as $countryID => $translations) {
+            // Ищем страну по CountryID
+            try {
+                $country = $this->countriesValidationService->validateCountryExists($countryID);
+            } catch (\InvalidArgumentException $e) {
+                $this->logger->warning("Country with ID $countryID not found. Skipping translations.");
+                continue;
+            }
+
+            foreach ($translations as $translationData) {
+                try {
+                    // Проверка языка
+                    $language = $this->languagesValidationService->validateLanguageID($translationData['LanguageID']);
+                    // Проверка уникальности перевода
+                    $this->countriesValidationService->ensureUniqueTranslation($country, $language);
+
+                    // Создание и сохранение перевода
+                    $translation = new CountryTranslation();
+                    $translation->setCountryID($country);
+                    $translation->setLanguageID($language);
+                    $translation->setCountryName($translationData['CountryName']);
+                    $translation->setCountryDescription($translationData['CountryDescription']);
+
+                    $this->translationRepository->saveCountryTranslation($translation, true);
+                    $createdTranslations[] = $this->countriesValidationService->formatCountryTranslationData($translation);
+
+                    $this->logger->info("Translation for CountryID '{$countryID}' and LanguageID '{$language->getLanguageID()}' created successfully.");
+                } catch (\Exception $e) {
+                    $this->logger->error("Failed to add translation for CountryID '$countryID': " . $e->getMessage());
+                }
+            }
+        }
+
+        return $createdTranslations;
+    }
+
+    public function seedCountriesAndTranslations(): array
+    {
+        $this->logger->info("Executing combined seedCountriesAndTranslations method.");
+
+        // Сначала создаем страны
+        $createdCountries = $this->seedCountries();
+
+        // Затем создаем переводы для созданных стран
+        $createdTranslations = $this->seedTranslations();
+
+        return [
+            'countries' => $createdCountries,
+            'translations' => $createdTranslations,
+            'message' => 'Countries and translations seeded successfully.'
+        ];
+    }
+
+
 
 }

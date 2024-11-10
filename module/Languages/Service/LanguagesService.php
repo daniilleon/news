@@ -211,4 +211,55 @@ class LanguagesService
         $this->languagesValidationService->validateLanguageCode($languageCode);
         $this->languagesValidationService->validateLanguageName($languageName);
     }
+
+    //Простое добавление языка демо версией
+    public function seedLanguages(): array
+    {
+        $this->logger->info("Executing seedLanguages method.");
+
+        $languages = [
+            [
+                "LanguageCode" => "en",
+                "LanguageName" => "English"
+            ],
+            [
+                "LanguageCode" => "ru",
+                "LanguageName" => "Русский"
+            ]
+        ];
+
+        $addedLanguages = [];
+
+        foreach ($languages as $languageData) {
+            $languageCode = $languageData['LanguageCode'];
+            $languageName = $languageData['LanguageName'];
+
+            // Проверка на существование языка в базе
+            if ($this->languageRepository->findOneBy(['LanguageCode' => $languageCode])) {
+                $this->logger->info("Language with code '$languageCode' already exists. Skipping.");
+                continue;
+            }
+
+            try {
+                $language = (new Language())
+                    ->setLanguageCode(strtoupper($languageCode))
+                    ->setLanguageName($languageName);
+
+                // Валидация и фильтрация полей
+                $this->helper->validateAndFilterFields($language, $languageData);
+                $this->languageRepository->saveLanguage($language, true);
+
+                $this->logger->info("Language '$languageName' with code '$languageCode' successfully added.");
+                $addedLanguages[] = [
+                    'message' => 'Language added successfully.',
+                    'language' => $this->languagesValidationService->formatLanguageData($language)
+                ];
+            } catch (\Exception $e) {
+                $this->logger->error("Failed to add language '$languageCode': " . $e->getMessage());
+            }
+        }
+
+        return $addedLanguages;
+    }
+
 }

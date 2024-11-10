@@ -211,6 +211,16 @@ class CategoriesService
                 $this->logger->warning("Category with ID $categoryId not found for updating.");
                 throw new \InvalidArgumentException("Category with ID $categoryId not found.");
             }
+
+            // Проверка наличия обязательных полей и их значений (в данных или в объекте)
+            $requiredFields = ['CategoryLink'];
+            foreach ($requiredFields as $field) {
+                $value = $data[$field] ?? $category->{'get' . $field}();
+                if (empty($value)) {
+                    throw new \InvalidArgumentException("Field '$field' is required and cannot be empty.");
+                }
+            }
+
             // Используем FieldUpdateHelper для обновления поля CategoryLink с проверками
             FieldUpdateHelper::updateFieldIfPresent(
                 $category,
@@ -291,6 +301,15 @@ class CategoriesService
 
             // Проверка, что LanguageID не был передан в запросе
             $this->languagesValidationService->checkImmutableLanguageID($data, $translationId);
+
+            // Проверка наличия обязательных полей и их значений (в данных или в объекте)
+            $requiredFields = ['CategoryName'];
+            foreach ($requiredFields as $field) {
+                $value = $data[$field] ?? $translation->{'get' . $field}();
+                if (empty($value)) {
+                    throw new \InvalidArgumentException("Field '$field' is required and cannot be empty.");
+                }
+            }
             // Валидация всех данных, переданных в $data
             $this->categoriesValidationService->validateCategoryTranslationData($data);
 
@@ -405,5 +424,125 @@ class CategoriesService
             throw $e;
         }
     }
+
+
+    /*/
+    Методы для демо данных
+    /*/
+    public function seedCategories(): array
+    {
+        $this->logger->info("Executing seedCategories method.");
+
+        // Данные для предустановленных категорий
+        $categoriesData = [
+            ["CategoryLink" => "first"],
+            ["CategoryLink" => "second"]
+        ];
+
+        $createdCategories = [];
+
+        foreach ($categoriesData as $categoryData) {
+            try {
+                // Валидация и проверка уникальности CategoryLink
+                $this->categoriesValidationService->validateCategoryLink($categoryData);
+                $this->categoriesValidationService->ensureUniqueCategoryLink($categoryData['CategoryLink']);
+
+                // Создание новой категории
+                $category = new Categories();
+                $category->setCategoryLink($categoryData['CategoryLink']);
+                $this->categoryRepository->saveCategory($category, true);
+
+                $createdCategories[] = $this->categoriesValidationService->formatCategoryData($category);
+                $this->logger->info("Category '{$categoryData['CategoryLink']}' created successfully.");
+            } catch (\InvalidArgumentException $e) {
+                $this->logger->warning("Category '{$categoryData['CategoryLink']}' already exists or invalid. Skipping.");
+            } catch (\Exception $e) {
+                $this->logger->error("Unexpected error creating category '{$categoryData['CategoryLink']}': " . $e->getMessage());
+            }
+        }
+
+        return $createdCategories;
+    }
+
+    public function seedTranslations(): array
+    {
+        $this->logger->info("Executing seedTranslations method.");
+
+        // Данные переводов, привязанные к CategoryID
+        $translationsData = [
+            1 => [ // Предполагается, что CategoryID 1 соответствует "first"
+                [
+                    "CategoryName" => "Первая категория",
+                    "CategoryDescription" => "Описание первой категории",
+                    "LanguageID" => 2
+                ],
+                [
+                    "CategoryName" => "First category ",
+                    "CategoryDescription" => "Category first description",
+                    "LanguageID" => 1
+                ]
+            ],
+            2 => [ // Предполагается, что CategoryID 2 соответствует "second"
+                [
+                    "CategoryName" => "Вторая категория",
+                    "CategoryDescription" => "Описание второй категории",
+                    "LanguageID" => 2
+                ],
+                [
+                    "CategoryName" => "Category Name",
+                    "CategoryDescription" => "Category second description",
+                    "LanguageID" => 1
+                ]
+            ]
+        ];
+
+        $createdTranslations = [];
+
+        foreach ($translationsData as $categoryID => $translations) {
+            try {
+                $category = $this->categoriesValidationService->validateCategoryExists($categoryID);
+            } catch (\InvalidArgumentException $e) {
+                $this->logger->warning("Category with ID $categoryID not found. Skipping translations.");
+                continue;
+            }
+
+            foreach ($translations as $translationData) {
+                try {
+                    $language = $this->languagesValidationService->validateLanguageID($translationData['LanguageID']);
+                    $this->categoriesValidationService->ensureUniqueTranslation($category, $language);
+
+                    $translation = new CategoryTranslation();
+                    $translation->setCategoryID($category);
+                    $translation->setLanguageID($language);
+                    $translation->setCategoryName($translationData['CategoryName']);
+                    $translation->setCategoryDescription($translationData['CategoryDescription']);
+
+                    $this->translationRepository->saveCategoryTranslation($translation, true);
+                    $createdTranslations[] = $this->categoriesValidationService->formatCategoryTranslationData($translation);
+
+                    $this->logger->info("Translation for CategoryID '{$categoryID}' and LanguageID '{$language->getLanguageID()}' created successfully.");
+                } catch (\Exception $e) {
+                    $this->logger->error("Failed to add translation for CategoryID '$categoryID': " . $e->getMessage());
+                }
+            }
+        }
+
+        return $createdTranslations;
+    }
+
+    public function seedCategoriesAndTranslations(): array
+    {
+        $this->logger->info("Executing combined seedCategoriesAndTranslations method.");
+
+        $createdCategories = $this->seedCategories();
+        $createdTranslations = $this->seedTranslations();
+
+        return [
+            'categories' => $createdCategories,
+            'translations' => $createdTranslations,
+            'message' => 'Categories and translations seeded successfully.'
+        ];
+    }
+
 
 }

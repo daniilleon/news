@@ -3,6 +3,7 @@
 namespace Module\Employees\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
 use Module\Employees\Repository\EmployeesRepository;
 use Module\Languages\Entity\Language; // Подключаем сущность Language
 use Module\Categories\Entity\Categories;
@@ -26,6 +27,15 @@ class Employee
     #[ORM\JoinColumn(name: 'CategoryID', referencedColumnName: 'CategoryID', nullable: false)]
     private Categories $categoryID;
 
+    #[ORM\ManyToOne(targetEntity: EmployeesJobTitle::class)]
+    #[ORM\JoinColumn(name: 'EmployeeJobTitleID', referencedColumnName: 'EmployeeJobTitleID', nullable: false)]
+    private EmployeesJobTitle $employeeJobTitleID;
+
+    #[ORM\Column(name: 'EmployeeActive', type: 'boolean', options: ['default' => true])]
+    #[Assert\NotBlank(message: "EmployeeActive is required.")]
+    private bool $employeeActive = true; // Значение по умолчанию: true, если сотрудник активен
+
+
     #[ORM\Column(name: 'EmployeeLink', type: 'string', length: 255)]
     #[Assert\NotBlank(message: "EmployeeLink is required.")]
     #[Assert\Regex("/^[a-zA-Z0-9_-]+$/", message: "EmployeeLink can contain only letters, numbers, underscores, and hyphens.")]
@@ -35,11 +45,6 @@ class Employee
     #[Assert\NotBlank(message: "EmployeeName is required.")]
     #[Assert\Regex("/^[a-zA-Z\s]+$/", message: "EmployeeName can contain only letters and spaces.")]
     private string $employeeName;
-
-    #[ORM\Column(name: 'EmployeeJobTitle', type: 'string', length: 255)]
-    #[Assert\NotBlank(message: "EmployeeJobTitle is required.")]
-    #[Assert\Regex("/^[a-zA-Z\s0-9]+$/", message: "EmployeeJobTitle can contain only letters, spaces, and numbers.")]
-    private string $employeeJobTitle;
 
     #[ORM\Column(name: 'EmployeeDescription', type: 'text', nullable: true)]
     #[Assert\Regex("/^[a-zA-Z\s0-9]*$/", message: "EmployeeDescription can contain only letters, spaces, and numbers.")]
@@ -91,6 +96,30 @@ class Employee
         return $this;
     }
 
+    public function getEmployeeJobTitleID(): EmployeesJobTitle
+    {
+        return $this->employeeJobTitleID;
+    }
+
+    public function setEmployeeJobTitleID(EmployeesJobTitle $employeeJobTitleID): self
+    {
+        $this->employeeJobTitleID = $employeeJobTitleID;
+        return $this;
+    }
+
+    // Геттер для EmployeeActive
+    public function getEmployeeActive(): bool
+    {
+        return $this->employeeActive;
+    }
+
+    // Сеттер для EmployeeActive
+    public function setEmployeeActive(bool $employeeActive): self
+    {
+        $this->employeeActive = $employeeActive;
+        return $this;
+    }
+
     public function getEmployeeLink(): string
     {
         return $this->employeeLink;
@@ -113,16 +142,6 @@ class Employee
         return $this;
     }
 
-    public function getEmployeeJobTitle(): string
-    {
-        return $this->employeeJobTitle;
-    }
-
-    public function setEmployeeJobTitle(string $employeeJobTitle): self
-    {
-        $this->employeeJobTitle = trim($employeeJobTitle);
-        return $this;
-    }
 
     public function getEmployeeDescription(): ?string
     {

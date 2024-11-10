@@ -2,11 +2,14 @@
 
 namespace Module\Employees\Service;
 
-use Module\Categories\Repository\CategoriesRepository;
-use Module\Employees\Repository\EmployeesRepository;
-use Module\Languages\Repository\LanguagesRepository;
+use InvalidArgumentException;
 use Module\Employees\Entity\Employee;
-use Module\Common\Service\EmployeesValidationService;
+use Module\Employees\Repository\EmployeesRepository;
+use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
+use Module\Languages\Repository\LanguagesRepository;
+use Module\Categories\Repository\CategoriesRepository;
+use Module\Common\Service\Employees\EmployeesValidationService;
+use Module\Common\Service\Employees\EmployeesJobTitleValidationService;
 use Module\Common\Service\CategoriesValidationService;
 use Module\Common\Service\LanguagesValidationService;
 use Module\Common\Helpers\FieldUpdateHelper;
@@ -15,30 +18,36 @@ use Psr\Log\LoggerInterface;
 class EmployeesService
 {
     private EmployeesRepository $employeeRepository;
+    private EmployeesJobTitleRepository $employeesJobTitleRepository;
     private LanguagesRepository $languageRepository;
     private CategoriesRepository $categoriesRepository;
     private LoggerInterface $logger;
     private LanguagesValidationService $languagesValidationService;
     private CategoriesValidationService $categoriesValidationService;
     private EmployeesValidationService $employeesValidationService;
+    private EmployeesJobTitleValidationService $employeesJobTitleValidationService;
     private FieldUpdateHelper $helper;
 
     public function __construct(
         EmployeesRepository $employeeRepository,
+        EmployeesJobTitleRepository $employeesJobTitleRepository,
         LanguagesRepository $languageRepository,
         CategoriesRepository $categoriesRepository,
         LanguagesValidationService $languagesValidationService,
         CategoriesValidationService $categoriesValidationService,
         EmployeesValidationService $employeesValidationService,
+        EmployeesJobTitleValidationService $employeesJobTitleValidationService,
         FieldUpdateHelper $helper,
         LoggerInterface $logger)
     {
         $this->employeeRepository = $employeeRepository;
+        $this->employeesJobTitleRepository = $employeesJobTitleRepository;
         $this->languageRepository = $languageRepository;
         $this->categoriesRepository = $categoriesRepository;
         $this->languagesValidationService = $languagesValidationService;
         $this->categoriesValidationService = $categoriesValidationService;
         $this->employeesValidationService = $employeesValidationService;
+        $this->employeesJobTitleValidationService = $employeesJobTitleValidationService;
         $this->helper = $helper;
         $this->logger = $logger;
         $this->logger->info("EmployeeService instance created.");
@@ -115,14 +124,16 @@ class EmployeesService
             // Проверка наличия EmployeeLink или его установки по умолчанию
             $employeeLink = $data['EmployeeLink'] ?? null;  // Устанавливаем null, если ключ отсутствует
             $this->employeesValidationService->ensureUniqueEmployeeLink($employeeLink);
-            //Валидация на проверку языка и категории
+            //Валидация на проверку активности, языка, имени, должности и категории
+            //$this->employeesValidationService->ensureUniqueEmployeeActive($data['EmployeeActive'] ?? null); // Проверка обязателен ли EmployeeActive
             $this->employeesValidationService->ensureUniqueEmployeeName($data['EmployeeName'] ?? null); // Проверка обязателен ли EmployeeName
-            $this->employeesValidationService->ensureUniqueEmployeeJobTitle($data['EmployeeJobTitle'] ?? null); // Проверка обязателен ли EmployeeJobTitle
 
+            $employeeJobTitle = $this->employeesJobTitleValidationService->validateEmployeeJobTitleExists($data['EmployeeJobTitleID'] ?? null); // Проверка обязателен ли EmployeeJobTitle
             $language = $this->languagesValidationService->validateLanguageID($data['LanguageID'] ?? null); // Проверка существования языка
             $category = $this->categoriesValidationService->validateCategoryExists($data['CategoryID'] ?? null); // Проверка существования категории
 
             $employee = new Employee();
+            $employee->setEmployeeJobTitleID($employeeJobTitle);
             $employee->setEmployeeLanguageID($language);
             $employee->setEmployeeCategoryID($category);
 
@@ -130,13 +141,14 @@ class EmployeesService
             foreach ($data as $field => $value) {
                 $setter = 'set' . ucfirst($field);
 
-                if (!in_array($field, ['LanguageID', 'CategoryID']) && method_exists($employee, $setter)) {
+                if (!in_array($field, ['LanguageID', 'CategoryID', 'EmployeeJobTitleID', 'EmployeeActive']) && method_exists($employee, $setter)) {
                     $employee->$setter($value);
-                } elseif (!in_array($field, ['LanguageID', 'CategoryID'])) {
+                } elseif (!in_array($field, ['LanguageID', 'CategoryID', 'EmployeeJobTitleID'])) {
                     throw new \InvalidArgumentException("Field '$field' does not exist on Employee entity.");
                 }
             }
-            $this->helper->validateAndFilterFields($employee, array_diff_key($data, array_flip(['LanguageID', 'CategoryID'])));
+            // Исключение из массива данных перед фильтрацией и валидацией
+            $this->helper->validateAndFilterFields($employee, array_diff_key($data, array_flip(['LanguageID', 'CategoryID', 'EmployeeJobTitleID', 'EmployeeActive'])));
             // Сохраняем сотрудника в репозитории
             $this->employeeRepository->saveEmployee($employee, true);
             $this->logger->info("Employee '{$employee->getEmployeeName()}' created successfully.");
@@ -174,30 +186,38 @@ class EmployeesService
                 throw new \InvalidArgumentException("Employee with ID $id not found.");
             }
 
-            // Обновление EmployeeLink
+            // Проверка наличия обязательных полей и их значений (в данных или в объекте)
+            $requiredFields = ['EmployeeLink', 'EmployeeName'];
+            foreach ($requiredFields as $field) {
+                $value = $data[$field] ?? $employee->{'get' . $field}();
+                if (empty($value)) {
+                    throw new \InvalidArgumentException("Field '$field' is required and cannot be empty.");
+                }
+            }
+
+            // Используем FieldUpdateHelper для обновления обязательных полей EmployeeLink и EmployeeName с проверками
             FieldUpdateHelper::updateFieldIfPresent(
                 $employee,
                 $data,
                 'EmployeeLink',
-                fn($value) => $this->employeesValidationService->ensureUniqueEmployeeLink($value, $id)
+                function ($newLink) use ($id) {
+                    $this->employeesValidationService->ensureUniqueEmployeeLink($newLink, $id);
+                    $this->employeesValidationService->validateEmployeeData(['EmployeeLink' => $newLink]);
+
+                }
             );
 
-            // Обновление EmployeeName
             FieldUpdateHelper::updateFieldIfPresent(
                 $employee,
                 $data,
                 'EmployeeName',
-                fn($value) => $this->employeesValidationService->ensureUniqueEmployeeName($value, $id)
+                function ($newName) use ($id) {
+                    $this->employeesValidationService->ensureUniqueEmployeeName($newName, $id);
+                    $this->employeesValidationService->validateEmployeeData(['EmployeeName' => $newName]);
+                }
             );
 
-            // Обновление EmployeeJobTitle
-            FieldUpdateHelper::updateFieldIfPresent(
-                $employee,
-                $data,
-                'EmployeeJobTitle',
-                fn($value) => $this->employeesValidationService->ensureUniqueEmployeeJobTitle($value, $id)
-            );
-
+            $this->logger->info("Data before filtering: ", $data);
             // Обновление полей сотрудника
             foreach ($data as $field => $value) {
                 $setter = 'set' . ucfirst($field);
@@ -212,15 +232,21 @@ class EmployeesService
                     $category = $this->categoriesValidationService->validateCategoryExists($value);
                     $employee->setEmployeeCategoryID($category);
                 }
-                // Обработка остальных полей
-                elseif (method_exists($employee, $setter)) {
+                // Обработка EmployeeJobTitleID
+                elseif ($field === 'EmployeeJobTitleID') {
+                    $employeeJobTitle = $this->employeesJobTitleValidationService->validateEmployeeJobTitleExists($value);
+                    $employee->setEmployeeJobTitleID($employeeJobTitle);
+                }
+                if (!in_array($field, ['LanguageID', 'CategoryID', 'EmployeeJobTitleID', 'EmployeeActive']) && method_exists($employee, $setter)) {
                     $employee->$setter($value);
-                } else {
-                    $this->logger->warning("Field '$field' does not exist on Employee entity. Skipping.");
+                } elseif (!in_array($field, ['LanguageID', 'CategoryID', 'EmployeeJobTitleID'])) {
+                    throw new \InvalidArgumentException("Field '$field' does not exist on Employee entity.");
                 }
             }
 
-            $this->helper->validateAndFilterFields($employee, array_diff_key($data, array_flip(['LanguageID', 'CategoryID'])));
+            // Исключение из массива данных перед фильтрацией и валидацией
+            //$this->helper->validateAndFilterFields($employee, array_diff_key($data, array_flip(['LanguageID', 'CategoryID', 'EmployeeActive'])));
+
             // Сохраняем изменения
             $this->employeeRepository->saveEmployee($employee, true);
             $this->logger->info("Employee with ID $id successfully updated.");
@@ -241,6 +267,62 @@ class EmployeesService
             throw $e;
         }
     }
+
+    /**
+     * Активация или деактивация сотрудника.
+     *
+     * @param int $id
+     * @param bool $activeStatus
+     * @return array
+     * @throws InvalidArgumentException если сотрудник не найден
+     */
+    public function toggleEmployeeStatus(int $id, array $data): array
+    {
+        $this->logger->info("Executing toggleEmployeeStatus method for ID: $id");
+
+        try {
+            // Получаем сотрудника из базы данных
+            $employee = $this->employeeRepository->findEmployeeById($id);
+            if (!$employee) {
+                $this->logger->warning("Employee with ID $id not found for status update.");
+                throw new \InvalidArgumentException("Employee with ID $id not found.");
+            }
+
+            // Проверка на наличие только допустимого поля EmployeeActive
+            foreach ($data as $field => $value) {
+                if ($field !== 'EmployeeActive') {
+                    throw new \InvalidArgumentException("Field '$field' is not allowed. Only 'EmployeeActive' can be updated.");
+                }
+            }
+
+            // Устанавливаем активный статус и фильтруем поле
+            $this->employeesValidationService->ensureUniqueEmployeeActive($data['EmployeeActive']  ?? null);
+            $employee->setEmployeeActive($data['EmployeeActive']);
+
+            // Обновляем должность сотрудника в зависимости от статуса
+            $this->updateJobTitleBasedOnStatus($employee, $data['EmployeeActive']);
+
+            // Сохраняем изменения
+            $this->employeeRepository->saveEmployee($employee, true);
+            $this->logger->info("Employee with ID $id successfully " . ($data['EmployeeActive'] ? 'activated' : 'deactivated') . ".");
+
+            // Формируем ответ
+            return [
+                'employee' => $this->employeesValidationService->formatEmployeeData($employee, true),
+                'message' => "Employee status updated successfully. Only 'EmployeeActive' was processed; other fields were ignored."
+            ];
+
+        } catch (\InvalidArgumentException $e) {
+            // Логируем и пробрасываем исключение, если возникла ошибка валидации
+            $this->logger->error("Validation failed for Employee ID $id: " . $e->getMessage());
+            throw $e;
+        } catch (\Exception $e) {
+            // Логирование других ошибок
+            $this->logger->error("An unexpected error occurred while updating status for employee with ID $id: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
 
     /**
      * Удаление сотрудника по ID
@@ -271,6 +353,38 @@ class EmployeesService
         } catch (\Exception $e) {
             $this->logger->error("An unexpected error occurred while deleting employee with ID $id: " . $e->getMessage());
             throw new \RuntimeException("Unable to delete employee", 0, $e);
+        }
+    }
+
+    /**
+     * Обновляет должность сотрудника в зависимости от статуса активности.
+     *
+     * @param Employee $employee
+     * @param bool $isActive
+     */
+    private function updateJobTitleBasedOnStatus(Employee $employee, bool $isActive): void
+    {
+        $jobTitleCode = $isActive ? 'HIRED' : 'FIRED';
+
+        try {
+            // Пытаемся найти должность по коду
+            $jobTitle = $this->employeesJobTitleRepository->findEmployeeJobTitleByCode($jobTitleCode);
+
+            // Если должность найдена, назначаем её сотруднику
+            if ($jobTitle) {
+                $employee->setEmployeeJobTitleID($jobTitle);
+                $this->logger->info("Employee with ID {$employee->getEmployeeID()} job title set to '$jobTitleCode' based on active status.");
+            } else {
+                $this->logger->warning("Job title with code '$jobTitleCode' not found.");
+                throw new \InvalidArgumentException("Job title with code '$jobTitleCode' not found for employee with ID {$employee->getEmployeeID()}.");
+            }
+        } catch (\InvalidArgumentException $e) {
+            $this->logger->warning($e->getMessage());
+            throw $e;
+        } catch (\Exception $e) {
+            // Логируем исключение и пробрасываем его дальше
+            $this->logger->error("Failed to update job title for employee with ID {$employee->getEmployeeID()}: " . $e->getMessage());
+            throw new \RuntimeException("Unable to update job title based on employee status.", 0, $e);
         }
     }
 

@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Module\Common\Factory\ResponseFactory;
 
 // Основной контроллер API для работы с категориями.
-#[Route('/api')]
+#[Route('/api/countries')]
 class CountriesController
 {
     private CountriesService $countriesService;
@@ -28,7 +28,7 @@ class CountriesController
     }
 
     // Получение списка всех Стран.
-    #[Route('/countries', name: 'api_get_countries', methods: ['GET'])]
+    #[Route('/', name: 'api_get_countries', methods: ['GET'])]
     public function getCountries(): JsonResponse
     {
         try {
@@ -42,7 +42,7 @@ class CountriesController
     }
 
     // Получение данных Страны по ее ID.
-    #[Route('/countries/{countryId}', name: 'api_get_country', methods: ['GET'])]
+    #[Route('/{countryId}', name: 'api_get_country', methods: ['GET'])]
     public function getCountry(int $countryId): JsonResponse
     {
         try {
@@ -59,7 +59,7 @@ class CountriesController
     }
 
     // Создание новой Страны.
-    #[Route('/countries/add', name: 'api_add_country', methods: ['POST'])]
+    #[Route('/add', name: 'api_add_country', methods: ['POST'])]
     public function addCountry(Request $request): JsonResponse
     {
         try {
@@ -75,7 +75,7 @@ class CountriesController
         }
     }
 
-    #[Route('/countries/{countryId}/upload-image', name: 'api_update_country_image', methods: ['POST'])]
+    #[Route('/{countryId}/upload-image', name: 'api_update_country_image', methods: ['POST'])]
     public function updateCountryImage(int $countryId, Request $request): JsonResponse
     {
         try {
@@ -95,7 +95,7 @@ class CountriesController
 
 
     // Добавление перевода для Страны.
-    #[Route('/countries/{countryId}/add-translation', name: 'api_add_country_translation', methods: ['POST'])]
+    #[Route('/{countryId}/add-translation', name: 'api_add_country_translation', methods: ['POST'])]
     public function addCountryTranslation(int $countryId, Request $request): JsonResponse
     {
         try {
@@ -111,7 +111,7 @@ class CountriesController
     }
 
     // Обновление только основной Страны (ссылки)
-    #[Route('/countries/{countryId}/update', name: 'api_update_country', methods: ['PUT'])]
+    #[Route('/{countryId}/update', name: 'api_update_country', methods: ['PUT'])]
     public function updateCountryLink(int $countryId, Request $request): JsonResponse
     {
         try {
@@ -127,7 +127,7 @@ class CountriesController
     }
 
     // Обновление перевода Страны для указанного языка
-    #[Route('/countries/{countryId}/update-translation/{translationId}', name: 'api_update_country_translation', methods: ['PUT'])]
+    #[Route('/{countryId}/update-translation/{translationId}', name: 'api_update_country_translation', methods: ['PUT'])]
     public function updateCountryTranslation(int $countryId, int $translationId, Request $request): JsonResponse
     {
         try {
@@ -143,7 +143,7 @@ class CountriesController
     }
 
     // Удаление конкретного перевода Страны по его ID.
-    #[Route('/countries/{countryId}/delete-translation/{translationId}', name: 'api_delete_country_translation', methods: ['DELETE'])]
+    #[Route('/{countryId}/delete-translation/{translationId}', name: 'api_delete_country_translation', methods: ['DELETE'])]
     public function deleteCountryTranslation(int $countryId, int $translationId): JsonResponse
     {
         try {
@@ -158,7 +158,7 @@ class CountriesController
     }
 
     // Удаление Страны по ее ID.
-    #[Route('/countries/{countryId}/delete/', name: 'api_delete_country', methods: ['DELETE'])]
+    #[Route('/{countryId}/delete/', name: 'api_delete_country', methods: ['DELETE'])]
     public function deleteCountry(int $countryId): JsonResponse
     {
         try {
@@ -171,5 +171,19 @@ class CountriesController
             return $this->responseFactory->createErrorResponse('Unable to delete country', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
+    //Метод заполнения демо данными
+    #[Route('/seed', name: 'api_seed_countries_and_translations', methods: ['POST'])]
+    public function seedCountriesAndTranslations(): JsonResponse
+    {
+        try {
+            $result = $this->countriesService->seedCountriesAndTranslations();
+            return $this->responseFactory->createCreatedResponse($result);
+        } catch (\Exception $e) {
+            $this->logger->error("Failed to seed countries and translations: " . $e->getMessage());
+            return $this->responseFactory->createErrorResponse('Unable to seed countries and translations', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
 }

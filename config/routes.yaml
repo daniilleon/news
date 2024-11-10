@@ -4,17 +4,29 @@
    #     namespace: App\Controller
     #type: attribute
 
+#модули
 module_controllers:
     resource: '../module/*/Controller/Api/'
     type: attribute
+
+# Рекурсивная настройка для подмодулей
+nested_module_controllers:
+    resource: '../module/*/*/Controller/Api/'
+    type: attribute
+    #  name_prefix: 'api_nested_'   # Префикс для маршрутов подмодулей
 
 language_controller:
     resource: '../module/Languages/Controller/Api/'
     type: attribute
 
+#Модули сотрудника начало
 employee_controller:
     resource: '../module/Employees/Controller/Api/'
     type: attribute
+employee_job_title_controller:
+    resource: '../module/Employees/EmployeesJobTitle/Controller/Api/'
+    type: attribute
+#Модули сотрудника конец
 
 categories_controller:
     resource: '../module/Categories/Controller/Api/'

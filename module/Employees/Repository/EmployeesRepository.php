@@ -4,7 +4,9 @@ namespace Module\Employees\Repository;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
+use Module\Categories\Entity\Categories;
 use Module\Employees\Entity\Employee;
+use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
 use Module\Languages\Entity\Language;
 
 class EmployeesRepository extends ServiceEntityRepository
@@ -58,11 +60,21 @@ class EmployeesRepository extends ServiceEntityRepository
     }
 
 
-    public function findEmployeesByCategory(int $categoryID): array
+    public function findEmployeesByCategory(Categories $category): array
     {
         return $this->createQueryBuilder('e')
-            ->andWhere('e.categoryID = :categoryID')
-            ->setParameter('categoryID', $categoryID)
+            ->andWhere('e.categoryID = :category')
+            ->setParameter('categoryID', $category)
+            ->orderBy('e.employeeName', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findEmployeesByEmployeesJobTitle(EmployeesJobTitle $employeesJobTitle): array
+    {
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.employeeJobTitleID = :employeeJobTitle')
+            ->setParameter('employeeJobTitleID', $employeesJobTitle)
             ->orderBy('e.employeeName', 'ASC')
             ->getQuery()
             ->getResult();
@@ -77,4 +89,16 @@ class EmployeesRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    //Метод для поиска активных и пассивных сотрудников
+    public function findEmployeesByActiveStatus(bool $isActive): array
+    {
+        return $this->createQueryBuilder('e')
+            ->andWhere('e.employeeActive = :active')
+            ->setParameter('active', $isActive)
+            ->orderBy('e.employeeName', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
 }

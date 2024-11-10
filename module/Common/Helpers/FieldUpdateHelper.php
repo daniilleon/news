@@ -20,7 +20,8 @@ class FieldUpdateHelper
     }
 
     /**
-     * Универсальный метод для проверки и обновления поля объекта
+     * Метод updateFieldIfPresent — это универсальный способ проверить и обновить значение конкретного поля объекта,
+     * если оно передано в массиве данных $data, с возможностью валидации перед обновлением.
      *
      * @param object $entity Объект, поле которого нужно обновить
      * @param array $data Данные, содержащие обновляемые значения
@@ -57,7 +58,14 @@ class FieldUpdateHelper
     }
 
     /**
-     * Загрузка изображения с валидацией и сохранением в заданный каталог
+     * Метод validateAndFilterFields отвечает за проверку и фильтрацию входных данных на основе
+     * разрешенных полей для конкретной сущности. Его основное назначение:
+     *
+     * Валидация полей: Проверить, что только разрешенные поля включены в данные,
+     * которые поступают для обновления или создания сущности.
+     *
+     * Фильтрация данных: Создать массив только с теми полями,
+     * которые соответствуют разрешенным и существующим в сущности полям.
      *
      * @param UploadedFile $file Файл изображения
      * @param int $entityId ID сущности, например, категории, новости или города
@@ -78,6 +86,7 @@ class FieldUpdateHelper
                     // Извлекаем имя поля в camelCase
                     $field = lcfirst(substr($method->getName(), 3));
                     $allowedFields[] = $field;
+                    $this->logger->info("Allowed field added: $field");
                 }
             }
 
@@ -89,17 +98,25 @@ class FieldUpdateHelper
             // Проходим по входным данным и проверяем, что они разрешены
             foreach ($data as $key => $value) {
                 $camelCaseKey = lcfirst(str_replace('_', '', ucwords($key, '_')));
+                $this->logger->info("Processing field: $key as $camelCaseKey");
+                $this->logger->info("Validating field: $key with value: $value");
                 if (in_array($camelCaseKey, $allowedFields, true)) {
                     $filteredData[$camelCaseKey] = $value;
                 } else {
+                    $this->logger->warning("Field $key is not recognized as a valid field for update.");
                     throw new \InvalidArgumentException("Invalid field provided: $key");
                 }
             }
+            $this->logger->info("Filtered data after validation:", $filteredData);
 
             // Проверка, что есть хотя бы одно допустимое поле для обновления
             if (empty($filteredData)) {
+                $this->logger->error("No valid fields provided.");
                 throw new \InvalidArgumentException("No valid fields provided. Allowed fields are: " . implode(', ', $allowedFields));
             }
+            $this->logger->info("Filtered fields: ", $filteredData);
+
+
         } catch (\InvalidArgumentException $e) {
             $this->logger->error("Field validation failed: " . $e->getMessage());
             throw $e;

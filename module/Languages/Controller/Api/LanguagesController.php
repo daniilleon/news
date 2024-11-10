@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[Route('/api')]
+#[Route('/api/languages')]
 class LanguagesController
 {
     private LanguagesService $languagesService;
@@ -27,7 +27,7 @@ class LanguagesController
 
     // Получение списка всех языков
     // Получение списка всех языков.
-    #[Route('/languages', name: 'api_get_languages', methods: ['GET'])]
+    #[Route('/', name: 'api_get_languages', methods: ['GET'])]
     public function getLanguages(): JsonResponse
     {
         try {
@@ -45,7 +45,7 @@ class LanguagesController
 
 
     // Получение данных языка по его ID
-    #[Route('/languages/{id}', name: 'api_get_language', methods: ['GET'])]
+    #[Route('/{id}', name: 'api_get_language', methods: ['GET'])]
     public function getLanguage(int $id): JsonResponse
     {
         try {
@@ -60,7 +60,7 @@ class LanguagesController
 
 
     // Добавление нового языка.
-    #[Route('/languages/add', name: 'api_add_language', methods: ['POST'])]
+    #[Route('/add', name: 'api_add_language', methods: ['POST'])]
     public function addLanguage(Request $request): JsonResponse
     {
         try {
@@ -78,7 +78,7 @@ class LanguagesController
     }
 
     // Обновление языка по его ID
-    #[Route('/languages/{id}/update', name: 'api_update_language', methods: ['PUT'])]
+    #[Route('/{id}/update', name: 'api_update_language', methods: ['PUT'])]
     public function updateLanguage(int $id, Request $request): JsonResponse
     {
         try {
@@ -94,7 +94,7 @@ class LanguagesController
     }
 
     // Удаление языка по его ID
-    #[Route('/languages/{id}/delete', name: 'api_delete_language', methods: ['DELETE'])]
+    #[Route('/{id}/delete', name: 'api_delete_language', methods: ['DELETE'])]
     public function deleteLanguage(int $id): JsonResponse
     {
         try {
@@ -107,5 +107,23 @@ class LanguagesController
             return $this->responseFactory->createErrorResponse('Unable to delete language', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
+
+    #[Route('/seed', name: 'api_seed_languages', methods: ['POST'])]
+    public function seedLanguages(): JsonResponse
+    {
+        try {
+            $addedLanguages = $this->languagesService->seedLanguages();
+
+            if (empty($addedLanguages)) {
+                return $this->responseFactory->createErrorResponse('No new languages were added. All languages already exist.', JsonResponse::HTTP_CONFLICT);
+            }
+
+            return $this->responseFactory->createCreatedResponse($addedLanguages);
+        } catch (\Exception $e) {
+            $this->logger->error("Failed to seed languages: " . $e->getMessage());
+            return $this->responseFactory->createErrorResponse('Unable to seed languages', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
 }

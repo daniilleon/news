@@ -11,7 +11,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Module\Common\Factory\ResponseFactory;
 
 // Основной контроллер API для работы с сотрудниками.
-#[Route('/api')]
+#[Route('/api/employees/staff')]
 class EmployeesController
 {
     private EmployeesService $employeeService;
@@ -28,7 +28,7 @@ class EmployeesController
     }
 
     // Получение списка всех сотрудников.
-    #[Route('/employees', name: 'api_get_employees', methods: ['GET'])]
+    #[Route('/', name: 'api_get_employees', methods: ['GET'])]
     public function getEmployees(): JsonResponse
     {
         try {
@@ -44,7 +44,7 @@ class EmployeesController
 
 
     // Получение данных сотрудника по его ID.
-    #[Route('/employees/{id}', name: 'api_get_employee', methods: ['GET'])]
+    #[Route('/{id}', name: 'api_get_employee', methods: ['GET'])]
     public function getEmployee(int $id): JsonResponse
     {
         try {
@@ -65,7 +65,7 @@ class EmployeesController
 
 
     // Добавление нового сотрудника
-    #[Route('/employees/add', name: 'api_add_employee', methods: ['POST'])]
+    #[Route('/add', name: 'api_add_employee', methods: ['POST'])]
     public function addEmployee(Request $request): JsonResponse
     {
         try {
@@ -82,7 +82,7 @@ class EmployeesController
     }
 
     // Обновление данных сотрудника
-    #[Route('/employees/update/{id}', name: 'api_update_employee', methods: ['PUT'])]
+    #[Route('/update/{id}', name: 'api_update_employee', methods: ['PUT'])]
     public function updateEmployee(int $id, Request $request): JsonResponse
     {
         try {
@@ -97,9 +97,27 @@ class EmployeesController
         }
     }
 
+    // Активация или деактивация сотрудника
+    #[Route('/{id}/toggle-status', name: 'api_toggle_employee_status', methods: ['PUT'])]
+    public function toggleEmployeeStatus(int $id, Request $request): JsonResponse
+    {
+        try {
+            $data = json_decode($request->getContent(), true);
+            $responseData = $this->employeeService->toggleEmployeeStatus($id, $data);
+            return $this->responseFactory->createSuccessResponse($responseData);
+        } catch (\InvalidArgumentException $e) {
+            $this->logger->error("InvalidArgumentException caught in controller: " . $e->getMessage());
+            return $this->responseFactory->createErrorResponse($e->getMessage(), JsonResponse::HTTP_BAD_REQUEST);
+        } catch (\Exception $e) {
+            $this->logger->error("Failed to toggle employee status: " . $e->getMessage());
+            return $this->responseFactory->createErrorResponse('Unable to toggle employee status', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
 
     // Удаление сотрудника по его ID
-    #[Route('/employees/{id}/delete', name: 'api_delete_employee', methods: ['DELETE'])]
+    #[Route('/{id}/delete', name: 'api_delete_employee', methods: ['DELETE'])]
     public function deleteEmployee(int $id): JsonResponse
     {
         try {

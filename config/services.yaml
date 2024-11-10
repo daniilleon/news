@@ -1,10 +1,4 @@
-# This file is the entry point to configure your own services.
-# Files in the packages/ subdirectory configure your dependencies.
-
-# Put parameters here that don't need to change on each machine where the app is deployed
-# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
-
 services:
     # default configuration for services in *this* file
     _defaults:
@@ -17,24 +11,30 @@ services:
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
     Module\:
-        resource: '../module/'
+        resource: '../module/*'
         exclude:
-#            - '../src/DependencyInjection/'
-#            - '../src/Entity/'
             - '../module/Kernel.php'
+
+
+
     # Добавляем ValidationService как общий сервис
-    Module\Common\Service\LanguagesValidationService:
-        arguments:
-            $languagesRepository: '@Module\Languages\Repository\LanguagesRepository'
-            $logger: '@logger'
+    #Module\Common\Service\LanguagesValidationService:
+    #    arguments:
+    #        $languagesRepository: '@Module\Languages\Repository\LanguagesRepository'
+    #        $logger: '@logger'
 
     Module\Languages\Controller\Api\LanguagesController:
         tags: ['controller.service_arguments']
         public: true
 
+    #Модули сотрудника начало
     Module\Employees\Controller\Api\EmployeesController:
         tags: [ 'controller.service_arguments' ]
         public: true
+    Module\Employees\EmployeesJobTitle\Controller\Api\EmployeesJobTitleController:
+        tags: [ 'controller.service_arguments' ]
+        public: true
+    #Модули сотрудника конец
 
     Module\Categories\Controller\Api\CategoriesController:
         tags: [ 'controller.service_arguments' ]
@@ -43,8 +43,3 @@ services:
     Module\Countries\Controller\Api\CountriesController:
         tags: [ 'controller.service_arguments' ]
         public: true
-
-
-
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones
