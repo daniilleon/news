@@ -1,18 +1,18 @@
 <?php
 
-namespace Module\Employees\Service;
+namespace Module\Employees\Employees\Service;
 
 use InvalidArgumentException;
-use Module\Employees\Entity\Employee;
-use Module\Employees\Repository\EmployeesRepository;
-use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
-use Module\Languages\Repository\LanguagesRepository;
 use Module\Categories\Repository\CategoriesRepository;
-use Module\Common\Service\Employees\EmployeesValidationService;
-use Module\Common\Service\Employees\EmployeesJobTitleValidationService;
-use Module\Common\Service\CategoriesValidationService;
-use Module\Common\Service\LanguagesValidationService;
+use Module\Categories\Service\CategoriesValidationService;
 use Module\Common\Helpers\FieldUpdateHelper;
+use Module\Employees\Employees\Entity\Employee;
+use Module\Employees\Employees\Repository\EmployeesRepository;
+use \Module\Employees\Employees\Service\EmployeesValidationService;
+use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
+use Module\Employees\EmployeesJobTitle\Service\EmployeesJobTitleValidationService;
+use Module\Languages\Repository\LanguagesRepository;
+use Module\Languages\Service\LanguagesValidationService;
 use Psr\Log\LoggerInterface;
 
 class EmployeesService
@@ -124,13 +124,20 @@ class EmployeesService
             // Проверка наличия EmployeeLink или его установки по умолчанию
             $employeeLink = $data['EmployeeLink'] ?? null;  // Устанавливаем null, если ключ отсутствует
             $this->employeesValidationService->ensureUniqueEmployeeLink($employeeLink);
-            //Валидация на проверку активности, языка, имени, должности и категории
-            //$this->employeesValidationService->ensureUniqueEmployeeActive($data['EmployeeActive'] ?? null); // Проверка обязателен ли EmployeeActive
+            //Валидация на проверку имени
             $this->employeesValidationService->ensureUniqueEmployeeName($data['EmployeeName'] ?? null); // Проверка обязателен ли EmployeeName
 
-            $employeeJobTitle = $this->employeesJobTitleValidationService->validateEmployeeJobTitleExists($data['EmployeeJobTitleID'] ?? null); // Проверка обязателен ли EmployeeJobTitle
+            //$employeeJobTitle = $this->employeesJobTitleValidationService->validateEmployeeJobTitleExists($data['EmployeeJobTitleID'] ?? null); // Проверка обязателен ли EmployeeJobTitle
+            // Валидация языка и категории
             $language = $this->languagesValidationService->validateLanguageID($data['LanguageID'] ?? null); // Проверка существования языка
             $category = $this->categoriesValidationService->validateCategoryExists($data['CategoryID'] ?? null); // Проверка существования категории
+
+            // Поиск должности с кодом HIRED
+            $employeeJobTitle = $this->employeesJobTitleRepository->findEmployeeJobTitleByCode('HIRED');
+            if (!$employeeJobTitle) {
+                $this->logger->error("Job title with code 'HIRED' not found.");
+                throw new \InvalidArgumentException("Default job title 'HIRED' is missing.");
+            }
 
             $employee = new Employee();
             $employee->setEmployeeJobTitleID($employeeJobTitle);
@@ -143,7 +150,7 @@ class EmployeesService
 
                 if (!in_array($field, ['LanguageID', 'CategoryID', 'EmployeeJobTitleID', 'EmployeeActive']) && method_exists($employee, $setter)) {
                     $employee->$setter($value);
-                } elseif (!in_array($field, ['LanguageID', 'CategoryID', 'EmployeeJobTitleID'])) {
+                } elseif (!in_array($field, ['LanguageID', 'CategoryID'])) {
                     throw new \InvalidArgumentException("Field '$field' does not exist on Employee entity.");
                 }
             }
@@ -235,6 +242,12 @@ class EmployeesService
                 // Обработка EmployeeJobTitleID
                 elseif ($field === 'EmployeeJobTitleID') {
                     $employeeJobTitle = $this->employeesJobTitleValidationService->validateEmployeeJobTitleExists($value);
+
+                    // Проверяем, чтобы должность не была "FIRED"
+                    if ($employeeJobTitle->getEmployeeJobTitleCode() === 'FIRED') {
+                        throw new \InvalidArgumentException("The job title 'FIRED' cannot be manually assigned.");
+                    }
+
                     $employee->setEmployeeJobTitleID($employeeJobTitle);
                 }
                 if (!in_array($field, ['LanguageID', 'CategoryID', 'EmployeeJobTitleID', 'EmployeeActive']) && method_exists($employee, $setter)) {
@@ -309,7 +322,7 @@ class EmployeesService
             // Формируем ответ
             return [
                 'employee' => $this->employeesValidationService->formatEmployeeData($employee, true),
-                'message' => "Employee status updated successfully. Only 'EmployeeActive' was processed; other fields were ignored."
+                'message' => "Employee status updated successfully"
             ];
 
         } catch (\InvalidArgumentException $e) {
@@ -386,6 +399,78 @@ class EmployeesService
             $this->logger->error("Failed to update job title for employee with ID {$employee->getEmployeeID()}: " . $e->getMessage());
             throw new \RuntimeException("Unable to update job title based on employee status.", 0, $e);
         }
+    }
+
+
+    //Простое добавление сотрудника демо версией
+    public function seedEmployees(): array
+    {
+        $this->logger->info("Executing seedEmployees method.");
+
+        $employees = [
+            [
+                "EmployeeLink" => "demo_1",
+                "EmployeeName" => "Пробный сотрудник",
+                "LanguageID" => 2,
+                "CategoryID" => 1
+            ],
+            [
+                "EmployeeLink" => "demo_2",
+                "EmployeeName" => "Demo staff",
+                "LanguageID" => 1,
+                "CategoryID" => 2
+            ]
+        ];
+
+        $addedEmployees = [];
+
+        foreach ($employees as $employeeData) {
+            $employeeLink = $employeeData['EmployeeLink'];
+            $employeeName = $employeeData['EmployeeName'];
+            $languageID = $employeeData['LanguageID'];
+            $categoryID = $employeeData['CategoryID'];
+
+            // Проверка, существует ли сотрудник с таким EmployeeLink
+            if ($this->employeeRepository->findEmployeeByLink($employeeLink)) {
+                $this->logger->info("Employee with link '$employeeLink' already exists. Skipping.");
+                continue;
+            }
+
+            try {
+                // Проверка языка и категории
+                $language = $this->languagesValidationService->validateLanguageID($languageID);
+                $category = $this->categoriesValidationService->validateCategoryExists($categoryID);
+
+                // Поиск должности с кодом HIRED
+                $employeeJobTitle = $this->employeesJobTitleRepository->findEmployeeJobTitleByCode('HIRED');
+                if (!$employeeJobTitle) {
+                    $this->logger->error("Job title with code 'HIRED' not found. Skipping employee '$employeeName'.");
+                    continue;
+                }
+
+                // Создание нового сотрудника
+                $employee = new Employee();
+                $employee->setEmployeeLink($employeeLink)
+                    ->setEmployeeName($employeeName)
+                    ->setEmployeeLanguageID($language)
+                    ->setEmployeeCategoryID($category)
+                    ->setEmployeeJobTitleID($employeeJobTitle)
+                    ->setEmployeeActive(true); // По умолчанию активен
+
+                // Сохранение сотрудника
+                $this->employeeRepository->saveEmployee($employee, true);
+
+                $this->logger->info("Employee '$employeeName' with link '$employeeLink' successfully added.");
+                $addedEmployees[] = [
+                    'message' => 'Employee added successfully.',
+                    'employee' => $this->employeesValidationService->formatEmployeeData($employee, true)
+                ];
+            } catch (\Exception $e) {
+                $this->logger->error("Failed to add employee '$employeeName': " . $e->getMessage());
+            }
+        }
+
+        return $addedEmployees;
     }
 
 }

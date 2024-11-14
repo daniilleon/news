@@ -53,8 +53,8 @@ class EmployeeJobTitleTranslationsRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('t')
             ->andWhere('t.employeeJobTitleID = :employeeJobTitle')
             ->andWhere('t.languageID = :language')
-            ->setParameter('employeeJobTitle', $employeesJobTitle)
-            ->setParameter('language', $language)
+            ->setParameter('employeeJobTitle', $employeesJobTitle->getEmployeeJobTitleID())
+            ->setParameter('language', $language->getLanguageID())
             ->getQuery()
             ->getOneOrNullResult();
     }

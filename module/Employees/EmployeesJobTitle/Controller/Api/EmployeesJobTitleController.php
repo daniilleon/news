@@ -59,7 +59,7 @@ class EmployeesJobTitleController
     }
 
     // Создание новой должности (её кода).
-    #[Route('/add', name: 'api_add_employee_job_title_', methods: ['POST'])]
+    #[Route('/add', name: 'api_add_employee_job_title_add', methods: ['POST'])]
     public function addEmployeeJobTitle(Request $request): JsonResponse
     {
         try {

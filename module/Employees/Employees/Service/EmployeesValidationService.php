@@ -1,12 +1,12 @@
 <?php
 
-namespace Module\Common\Service\Employees;
+namespace Module\Employees\Employees\Service;
 
-use Module\Employees\Entity\Employee;
-use Module\Employees\Repository\EmployeesRepository;
-use Module\Common\Service\LanguagesValidationService;
-use Module\Common\Service\CategoriesValidationService;
-use Module\Common\Service\Employees\EmployeesJobTitleValidationService;
+use Module\Categories\Service\CategoriesValidationService;
+use Module\Employees\Employees\Entity\Employee;
+use Module\Employees\Employees\Repository\EmployeesRepository;
+use Module\Employees\EmployeesJobTitle\Service\EmployeesJobTitleValidationService;
+use Module\Languages\Service\LanguagesValidationService;
 use Psr\Log\LoggerInterface;
 
 class EmployeesValidationService
@@ -166,8 +166,8 @@ class EmployeesValidationService
         // Добавляем результат `formatLanguageData`, получая либо полный объект, либо только LanguageID
         // Вызов formatEmployeeData, где используется formatEmployeesJobTitleData
         $employeeData += $this->employeesJobTitleValidationService->formatEmployeesJobTitleData($employee->getEmployeeJobTitleID(), true, $employee->getEmployeeLanguageID());
+        $employeeData += $this->categoriesValidationService->formatCategoryData($employee->getEmployeeCategoryID(), true, $employee->getEmployeeLanguageID());
         $employeeData += $this->languagesValidationService->formatLanguageData($employee->getEmployeeLanguageID(), $detailedLanguage);
-        $employeeData += $this->categoriesValidationService->formatCategoryData($employee->getEmployeeCategoryID(), true);
 
         return $employeeData;
     }

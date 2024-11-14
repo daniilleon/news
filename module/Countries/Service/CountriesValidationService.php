@@ -1,6 +1,6 @@
 <?php
 
-namespace Module\Common\Service;
+namespace Module\Countries\Service;
 
 use Module\Countries\Entity\Countries;
 use Module\Countries\Entity\CountryTranslation;

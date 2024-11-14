@@ -1,11 +1,11 @@
 <?php
-namespace Module\Employees\Repository;
+namespace Module\Employees\Employees\Repository;
 
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Module\Categories\Entity\Categories;
-use Module\Employees\Entity\Employee;
+use Module\Employees\Employees\Entity\Employee;
 use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
 use Module\Languages\Entity\Language;
 

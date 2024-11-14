@@ -1,13 +1,15 @@
 <?php
 
-namespace Module\Employees\Entity;
+namespace Module\Employees\Employees\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
-use Module\Employees\Repository\EmployeesRepository;
-use Module\Languages\Entity\Language; // Подключаем сущность Language
 use Module\Categories\Entity\Categories;
+use Module\Employees\Employees\Repository\EmployeesRepository;
+use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
+use Module\Languages\Entity\Language;
 use Symfony\Component\Validator\Constraints as Assert;
+
+// Подключаем сущность Language
 
 #[ORM\Entity(repositoryClass: EmployeesRepository::class)]
 #[ORM\Table(name: 'module_employees')]
@@ -31,9 +33,9 @@ class Employee
     #[ORM\JoinColumn(name: 'EmployeeJobTitleID', referencedColumnName: 'EmployeeJobTitleID', nullable: false)]
     private EmployeesJobTitle $employeeJobTitleID;
 
-    #[ORM\Column(name: 'EmployeeActive', type: 'boolean', options: ['default' => true])]
+    #[ORM\Column(name: 'EmployeeActive', type: 'boolean', options: ['default' => false])]
     #[Assert\NotBlank(message: "EmployeeActive is required.")]
-    private bool $employeeActive = true; // Значение по умолчанию: true, если сотрудник активен
+    private bool $employeeActive = false; // Значение по умолчанию: true, если сотрудник активен
 
 
     #[ORM\Column(name: 'EmployeeLink', type: 'string', length: 255)]

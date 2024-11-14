@@ -1,11 +1,11 @@
 <?php
 
-namespace Module\Common\Service\Employees;
+namespace Module\Employees\EmployeesJobTitle\Service;
 
-use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
 use Module\Employees\EmployeesJobTitle\Entity\EmployeeJobTitleTranslations;
-use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
+use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
 use Module\Employees\EmployeesJobTitle\Repository\EmployeeJobTitleTranslationsRepository;
+use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
 use Module\Languages\Entity\Language;
 use Psr\Log\LoggerInterface;
 
@@ -49,9 +49,9 @@ class EmployeesJobTitleValidationService
             $employeeJobTitleName = $data['EmployeeJobTitleName'];
 
             // Проверка на допустимые символы и длину
-            if (!preg_match('/^[\p{L}0-9 _-]{1,20}$/u', $employeeJobTitleName)) {
+            if (!preg_match('/^[\p{L}0-9 _-]{1,50}$/u', $employeeJobTitleName)) {
                 $this->logger->error("Invalid characters or length in EmployeeJobTitleName.");
-                throw new \InvalidArgumentException("Field 'EmployeeJobTitleName' can contain only letters, numbers, underscores, hyphens, spaces, and must be no more than 20 characters long.");
+                throw new \InvalidArgumentException("Field 'EmployeeJobTitleName' can contain only letters, numbers, underscores, hyphens, spaces, and must be no more than 50 characters long.");
             }
 
             // Проверка, что EmployeeJobTitleName не состоит только из цифр

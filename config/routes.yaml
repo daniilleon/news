@@ -19,15 +19,6 @@ language_controller:
     resource: '../module/Languages/Controller/Api/'
     type: attribute
 
-#Модули сотрудника начало
-employee_controller:
-    resource: '../module/Employees/Controller/Api/'
-    type: attribute
-employee_job_title_controller:
-    resource: '../module/Employees/EmployeesJobTitle/Controller/Api/'
-    type: attribute
-#Модули сотрудника конец
-
 categories_controller:
     resource: '../module/Categories/Controller/Api/'
     type: attribute
@@ -35,3 +26,23 @@ categories_controller:
 countries_controller:
     resource: '../module/Countries/Controller/Api/'
     type: attribute
+
+
+###Модули Employees начало###
+#Главный модуль Employees
+employee_controller:
+    resource: '../module/Employees/Employees/Controller/Api/'
+    type: attribute
+#Модуль EmployeesJobTitle
+employee_job_title_controller:
+    resource: '../module/Employees/EmployeesJobTitle/Controller/Api/'
+    type: attribute
+###Модули Employees конец###
+
+
+###Модули PERSONS начало###
+#Модуль MaritalStatus
+marital_status_controller:
+    resource: '../module/Persons/MaritalStatus/Controller/Api/'
+    type: attribute
+###Модули PERSONS конец###

@@ -15,8 +15,6 @@ services:
         exclude:
             - '../module/Kernel.php'
 
-
-
     # Добавляем ValidationService как общий сервис
     #Module\Common\Service\LanguagesValidationService:
     #    arguments:
@@ -27,15 +25,6 @@ services:
         tags: ['controller.service_arguments']
         public: true
 
-    #Модули сотрудника начало
-    Module\Employees\Controller\Api\EmployeesController:
-        tags: [ 'controller.service_arguments' ]
-        public: true
-    Module\Employees\EmployeesJobTitle\Controller\Api\EmployeesJobTitleController:
-        tags: [ 'controller.service_arguments' ]
-        public: true
-    #Модули сотрудника конец
-
     Module\Categories\Controller\Api\CategoriesController:
         tags: [ 'controller.service_arguments' ]
         public: true
@@ -43,3 +32,23 @@ services:
     Module\Countries\Controller\Api\CountriesController:
         tags: [ 'controller.service_arguments' ]
         public: true
+
+
+    ###Модули Employees начало###
+    #Главный модуль Employees
+    Module\Employees\Employees\Controller\Api\EmployeesController:
+        tags: [ 'controller.service_arguments' ]
+        public: true
+    #Модуль EmployeesJobTitle
+    Module\Employees\EmployeesJobTitle\Controller\Api\EmployeesJobTitleController:
+        tags: [ 'controller.service_arguments' ]
+        public: true
+    ###Модули Employees конец###
+
+
+    ###Модули PERSONS начало###
+    #Модуль MaritalStatus
+    Module\Persons\MaritalStatus\Controller\Api\MaritalStatusController:
+        tags: [ 'controller.service_arguments' ]
+        public: true
+    ###Модули PERSONS конец###

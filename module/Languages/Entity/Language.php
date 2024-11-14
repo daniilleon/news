@@ -34,7 +34,7 @@ class Language
     // Установка кода языка
     public function setLanguageCode(string $LanguageCode): self
     {
-        $this->LanguageCode = $LanguageCode;
+        $this->LanguageCode = strtolower(trim($LanguageCode));
         return $this;
     }
 

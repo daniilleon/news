@@ -2,17 +2,16 @@
 
 namespace Module\Employees\EmployeesJobTitle\Service;
 
-use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
-use Module\Employees\EmployeesJobTitle\Repository\EmployeeJobTitleTranslationsRepository;
-use Module\Languages\Repository\LanguagesRepository;
-use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
-use Module\Employees\EmployeesJobTitle\Entity\EmployeeJobTitleTranslations;
-use Module\Common\Service\LanguagesValidationService;
-use Module\Common\Service\Employees\EmployeesJobTitleValidationService;
-use Module\Common\Service\ImageService;
 use Module\Common\Helpers\FieldUpdateHelper;
+use Module\Common\Service\ImageService;
+use Module\Employees\EmployeesJobTitle\Entity\EmployeeJobTitleTranslations;
+use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
+use Module\Employees\EmployeesJobTitle\Repository\EmployeeJobTitleTranslationsRepository;
+use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
+use \Module\Employees\EmployeesJobTitle\Service\EmployeesJobTitleValidationService;
+use Module\Languages\Repository\LanguagesRepository;
+use Module\Languages\Service\LanguagesValidationService;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class EmployeesJobTitleService
 {
@@ -410,7 +409,8 @@ class EmployeesJobTitleService
         // Данные для предустановленных должностей
         $jobTitlesData = [
             ["EmployeeJobTitleCode" => "HIRED"],
-            ["EmployeeJobTitleCode" => "FIRED"]
+            ["EmployeeJobTitleCode" => "FIRED"],
+            //["EmployeeJobTitleCode" => "SINGUP"],
         ];
 
         $createdJobTitles = [];
@@ -444,7 +444,11 @@ class EmployeesJobTitleService
                 $jobTitleIds['FIRED'] ?? null => [
                 ["EmployeeJobTitleName" => "Сотрудник уволен", "LanguageID" => 2],
                 ["EmployeeJobTitleName" => "Employee dismissed", "LanguageID" => 1]
-            ]
+            ],
+//                $jobTitleIds['SINGUP'] ?? null => [
+//                ["EmployeeJobTitleName" => "Сотрудник зарегистрирован", "LanguageID" => 2],
+//                ["EmployeeJobTitleName" => "The employee is registered", "LanguageID" => 1]
+//            ],
         ];
 
         $createdTranslations = [];

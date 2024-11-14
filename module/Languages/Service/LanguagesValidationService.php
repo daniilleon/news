@@ -1,6 +1,6 @@
 <?php
 
-namespace Module\Common\Service;
+namespace Module\Languages\Service;
 
 use Module\Languages\Entity\Language;
 use Module\Languages\Repository\LanguagesRepository;
@@ -115,6 +115,5 @@ class LanguagesValidationService
             return ['LanguageID' => $language->getLanguageID()];
         }
     }
-
 
 }

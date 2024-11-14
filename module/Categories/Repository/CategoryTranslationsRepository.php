@@ -5,21 +5,21 @@ namespace Module\Categories\Repository;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
-use Module\Categories\Entity\CategoryTranslation;
+use Module\Categories\Entity\CategoryTranslations;
 use Module\Categories\Entity\Categories;
 use Module\Languages\Entity\Language;
 
-class CategoryTranslationRepository extends ServiceEntityRepository
+class CategoryTranslationsRepository extends ServiceEntityRepository
 {
     private EntityManagerInterface $entityManager;
 
     public function __construct(ManagerRegistry $registry, EntityManagerInterface $entityManager)
     {
-        parent::__construct($registry, CategoryTranslation::class);
+        parent::__construct($registry, CategoryTranslations::class);
         $this->entityManager = $entityManager;
     }
 
-    public function saveCategoryTranslation(CategoryTranslation $translation, bool $flush = false): void
+    public function saveCategoryTranslations(CategoryTranslations $translation, bool $flush = false): void
     {
         $this->entityManager->persist($translation);
         if ($flush) {
@@ -27,7 +27,7 @@ class CategoryTranslationRepository extends ServiceEntityRepository
         }
     }
 
-    public function deleteCategoryTranslation(CategoryTranslation $translation, bool $flush = false): void
+    public function deleteCategoryTranslations(CategoryTranslations $translation, bool $flush = false): void
     {
         $this->entityManager->remove($translation);
         if ($flush) {
@@ -45,7 +45,7 @@ class CategoryTranslationRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    public function findTranslationByCategoryAndLanguage(Categories $category, Language $language): ?CategoryTranslation
+    public function findTranslationByCategoryAndLanguage(Categories $category, Language $language): ?CategoryTranslations
     {
         return $this->createQueryBuilder('t')
             ->andWhere('t.categoryID = :category')

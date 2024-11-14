@@ -3,10 +3,10 @@
 namespace Module\Tests\Controller\Api\Employees;
 
 use Module\Categories\Entity\Categories;
-use Module\Employees\EmployeesJobTitle\Service\EmployeesJobTitleService;
-use Module\Employees\Entity\Employee;
-use Module\Languages\Entity\Language;
+use Module\Employees\Employees\Entity\Employee;
 use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
+use Module\Employees\EmployeesJobTitle\Service\EmployeesJobTitleService;
+use Module\Languages\Entity\Language;
 use Module\Languages\Service\LanguagesService;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
@@ -213,8 +213,5 @@ class EmployeeControllerTest extends WebTestCase
         $response = $this->client->getResponse();
         $this->assertEquals(Response::HTTP_NOT_FOUND, $response->getStatusCode());
     }
-
-
-
 
 }

@@ -1,14 +1,12 @@
 <?php
-namespace Module\Employees\Controller\Api;
+namespace Module\Employees\Employees\Controller\Api;
 
-use Exception;
-use InvalidArgumentException;
-use Module\Employees\Service\EmployeesService;
+use Module\Common\Factory\ResponseFactory;
+use Module\Employees\Employees\Service\EmployeesService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
-use Module\Common\Factory\ResponseFactory;
 
 // Основной контроллер API для работы с сотрудниками.
 #[Route('/api/employees/staff')]
@@ -82,7 +80,7 @@ class EmployeesController
     }
 
     // Обновление данных сотрудника
-    #[Route('/update/{id}', name: 'api_update_employee', methods: ['PUT'])]
+    #[Route('/{id}/update', name: 'api_update_employee', methods: ['PUT'])]
     public function updateEmployee(int $id, Request $request): JsonResponse
     {
         try {
@@ -128,6 +126,19 @@ class EmployeesController
         } catch (\Exception $e) {
             $this->logger->error("Failed to delete employee with ID $id: " . $e->getMessage());
             return $this->responseFactory->createErrorResponse('Unable to delete employee', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    //Для демо данных
+    #[Route('/seed', name: 'api_seed_employee', methods: ['POST'])]
+    public function seedEmployeeAndTranslations(): JsonResponse
+    {
+        try {
+            $result = $this->employeeService->seedEmployees();
+            return $this->responseFactory->createCreatedResponse($result);
+        } catch (\Exception $e) {
+            $this->logger->error("Failed to seed Staff and translations: " . $e->getMessage());
+            return $this->responseFactory->createErrorResponse('Unable to seed Staff and translations', JsonResponse::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 

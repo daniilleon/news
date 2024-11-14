@@ -24,22 +24,6 @@ doctrine:
                 dir: '%kernel.project_dir%/module/Languages/Entity'
                 prefix: 'Module\Languages\Entity'
                 alias: LanguagesModule
-
-            #Модули сотрудника начало
-            EmployeesModule:
-                type: attribute
-                is_bundle: false
-                dir: '%kernel.project_dir%/module/Employees/Entity'
-                prefix: 'Module\Employees\Entity'
-                alias: EmployeesModule
-            EmployeesModule_JobTitle:
-                type: attribute
-                is_bundle: false
-                dir: '%kernel.project_dir%/module/Employees/EmployeesJobTitle/Entity'
-                prefix: 'Module\Employees\EmployeesJobTitle\Entity'
-                alias: EmployeesModule_JobTitle
-            #Модули сотрудника конец
-
             CategoriesModule:
                 type: attribute
                 is_bundle: false
@@ -54,20 +38,33 @@ doctrine:
                 alias: CountriesModule
 
 
-                # Добавляем подмодули для Person
-                #PersonModule_RoleStatus:
-                #    type: attribute
-                #    is_bundle: false
-                #    dir: '%kernel.project_dir%/module/Person/RoleStatus/Entity'
-                #    prefix: 'Module\Person\RoleStatus\Entity'
-                #    alias: PersonModule_RoleStatus
+            ###Модули Employees начало###
+            #Главный модуль Employees
+            EmployeesModule:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/module/Employees/Employees/Entity'
+                prefix: 'Module\Employees\Employees\Entity'
+                alias: EmployeesModule
+            #Модуль EmployeesJobTitle
+            EmployeesModule_JobTitle:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/module/Employees/EmployeesJobTitle/Entity'
+                prefix: 'Module\Employees\EmployeesJobTitle\Entity'
+                alias: EmployeesModule_JobTitle
+            ###Модули Employees конец###
 
-                #PersonModule_CompanyRoles:
-                #    type: attribute
-                #    is_bundle: false
-                #    dir: '%kernel.project_dir%/module/Person/CompanyRoles/Entity'
-                #    prefix: 'Module\Person\CompanyRoles\Entity'
-                #    alias: PersonModule_CompanyRoles
+
+            ###Модули PERSONS начало###
+            #Модуль MaritalStatus
+            PersonsModule_MaritalStatus:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/module/Persons/MaritalStatus/Entity'
+                prefix: 'Module\Persons\MaritalStatus\Entity'
+                alias: PersonsModule_MaritalStatus
+            ###Модули PERSONS конец###
 
 #        controller_resolver:
 #            auto_mapping: false

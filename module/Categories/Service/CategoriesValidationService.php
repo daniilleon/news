@@ -1,24 +1,24 @@
 <?php
 
-namespace Module\Common\Service;
+namespace Module\Categories\Service;
 
 use Module\Categories\Entity\Categories;
-use Module\Categories\Entity\CategoryTranslation;
+use Module\Categories\Entity\CategoryTranslations;
 use Module\Categories\Repository\CategoriesRepository;
-use Module\Categories\Repository\CategoryTranslationRepository;
+use Module\Categories\Repository\CategoryTranslationsRepository;
 use Module\Languages\Entity\Language;
 use Psr\Log\LoggerInterface;
 
 class CategoriesValidationService
 {
     private CategoriesRepository $categoryRepository;
-    private CategoryTranslationRepository $translationRepository;
+    private CategoryTranslationsRepository $translationRepository;
     private LoggerInterface $logger;
 
     public function __construct(
-        CategoriesRepository $categoryRepository,
-        CategoryTranslationRepository $translationRepository,
-        LoggerInterface $logger
+        CategoriesRepository           $categoryRepository,
+        CategoryTranslationsRepository $translationRepository,
+        LoggerInterface                $logger
     ) {
         $this->categoryRepository = $categoryRepository;
         $this->translationRepository = $translationRepository;
@@ -152,59 +152,80 @@ class CategoriesValidationService
      * @param Categories $category
      * @return array
      */
-    public function formatCategoryData(Categories $category, bool $detail = false): array
-    {
-        if($detail) {
-            return [
-                'Categories' => [
-                    'CategoryID' => $category->getCategoryID(),
-                    'CategoryLink' => $category->getCategoryLink(),
-                ]
-            ];
-        } else {
-            return [
-                'CategoryID' => $category->getCategoryID(),
-                'CategoryLink' => $category->getCategoryLink(),
-            ];
-        }
-    }
+//    public function formatCategoryData(Categories $category, bool $detail = false): array
+//    {
+//        if($detail) {
+//            return [
+//                'Categories' => [
+//                    'CategoryID' => $category->getCategoryID(),
+//                    'CategoryLink' => $category->getCategoryLink(),
+//                ]
+//            ];
+//        } else {
+//            return [
+//                'CategoryID' => $category->getCategoryID(),
+//                'CategoryLink' => $category->getCategoryLink(),
+//            ];
+//        }
+//    }
 
     /**
      * Форматирование данных перевода категории для ответа.
      *
-     * @param CategoryTranslation $translation
+     * @param CategoryTranslations $translation
      * @return array
      */
-    public function formatCategoryTranslationData(CategoryTranslation $translation): array
+//    public function formatCategoryTranslationData(CategoryTranslations $translation): array
+//    {
+//        return [
+//            'TranslationID' => $translation->getCategoryTranslationID(),
+//            'LanguageID' => $translation->getLanguageID()->getLanguageID(),
+//            'CategoryName' => $translation->getCategoryName(),
+//            'CategoryDescription' => $translation->getCategoryDescription(),
+//        ];
+//    }
+
+
+    public function formatCategoryData(Categories $category, bool $detail = false, ?Language $language = null): array
+    {
+        $categoryData = [
+            'CategoryID' => $category->getCategoryID(),
+            'CategoryLink' => $category->getCategoryLink(),
+        ];
+
+        // Если требуется детальная информация и указан язык, получаем перевод
+        if ($detail && $language) {
+            $translation = $this->getCategoryTranslation($category, $language);
+
+            if ($translation) {
+                $categoryData['Translation'] = $this->formatCategoryTranslationData($translation);
+            } else {
+                $categoryData['Translation'] = 'Translation not available for the selected language.';
+            }
+        }
+
+        return $detail ? ['Categories' => $categoryData] : $categoryData;
+    }
+
+
+    /**
+     * Форматирование данных перевода категории для ответа.
+     *
+     * @param CategoryTranslations $translation
+     * @return array
+     */
+    public function formatCategoryTranslationData(CategoryTranslations $translation): array
     {
         return [
-            'TranslationID' => $translation->getCategoryTranslationID(),
+            'CategoryTranslationID' => $translation->getCategoryTranslationID(),
             'LanguageID' => $translation->getLanguageID()->getLanguageID(),
             'CategoryName' => $translation->getCategoryName(),
             'CategoryDescription' => $translation->getCategoryDescription(),
         ];
     }
 
-    public function formatCategoryMainData(Categories $category, CategoryTranslation $translation, bool $detailed = true): array
+    public function getCategoryTranslation(Categories $category, Language $language): ?CategoryTranslations
     {
-        if ($detailed) {
-            // Возвращаем полное описание языка
-            return [
-                'Categories' => [
-                    'CategoryID' => $category->getCategoryID(),
-                    'CategoryLink' => $category->getCategoryLink(),
-                        'Translation' => [
-                            'TranslationID' => $translation->getCategoryTranslationID(),
-                            'LanguageID' => $translation->getLanguageID()->getLanguageID(),
-                            'CategoryName' => $translation->getCategoryName(),
-                            'CategoryDescription' => $translation->getCategoryDescription(),
-                        ]
-                ]
-            ];
-        } else {
-            // Возвращаем только LanguageID как отдельное поле
-            return ['CategoryID' => $category->getCategoryID()];
-        }
+        return $this->translationRepository->findTranslationByCategoryAndLanguage($category, $language);
     }
-
 }

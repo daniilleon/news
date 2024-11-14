@@ -3,13 +3,13 @@
 namespace Module\Categories\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Module\Categories\Repository\CategoryTranslationRepository;
+use Module\Categories\Repository\CategoryTranslationsRepository;
 use Module\Languages\Entity\Language;
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[ORM\Entity(repositoryClass: CategoryTranslationRepository::class)]
+#[ORM\Entity(repositoryClass: CategoryTranslationsRepository::class)]
 #[ORM\Table(name: 'module_category_translations')]
-class CategoryTranslation
+class CategoryTranslations
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
