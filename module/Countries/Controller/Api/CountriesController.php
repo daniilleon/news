@@ -158,7 +158,7 @@ class CountriesController
     }
 
     // Удаление Страны по ее ID.
-    #[Route('/{countryId}/delete/', name: 'api_delete_country', methods: ['DELETE'])]
+    #[Route('/{countryId}/delete', name: 'api_delete_country', methods: ['DELETE'])]
     public function deleteCountry(int $countryId): JsonResponse
     {
         try {

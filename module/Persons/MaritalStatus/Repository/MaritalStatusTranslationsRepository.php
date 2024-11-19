@@ -7,7 +7,6 @@ use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManagerInterface;
 use Module\Persons\MaritalStatus\Entity\MaritalStatusTranslations;
 use Module\Persons\MaritalStatus\Entity\MaritalStatus;
-use Module\Languages\Entity\Language;
 
 /**
  * @extends ServiceEntityRepository<MaritalStatusTranslations>
@@ -22,7 +21,7 @@ class MaritalStatusTranslationsRepository extends ServiceEntityRepository
         $this->entityManager = $entityManager;
     }
 
-    public function saveMaritalStatusTranslation(MaritalStatusTranslations $translation, bool $flush = false): void
+    public function saveMaritalStatusTranslations(MaritalStatusTranslations $translation, bool $flush = false): void
     {
         $this->entityManager->persist($translation);
         if ($flush) {
@@ -30,7 +29,7 @@ class MaritalStatusTranslationsRepository extends ServiceEntityRepository
         }
     }
 
-    public function deleteMaritalStatusTranslation(MaritalStatusTranslations $translation, bool $flush = false): void
+    public function deleteMaritalStatusTranslations(MaritalStatusTranslations $translation, bool $flush = false): void
     {
         $this->entityManager->remove($translation);
         if ($flush) {
@@ -48,13 +47,13 @@ class MaritalStatusTranslationsRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    public function findTranslationByMaritalStatusAndLanguage(MaritalStatus $maritalStatus, Language $language): ?MaritalStatusTranslations
+    public function findTranslationByMaritalStatusAndLanguage(MaritalStatus $maritalStatus, int $languageId): ?MaritalStatusTranslations
     {
         return $this->createQueryBuilder('t')
             ->andWhere('t.maritalStatusID = :maritalStatus')
-            ->andWhere('t.languageID = :language')
+            ->andWhere('t.languageID = :languageId')
             ->setParameter('maritalStatus', $maritalStatus)
-            ->setParameter('language', $language)
+            ->setParameter('languageId', $languageId)
             ->getQuery()
             ->getOneOrNullResult();
     }

@@ -3,13 +3,13 @@
 namespace Module\Countries\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
-use Module\Countries\Repository\CountryTranslationRepository;
+use Module\Countries\Repository\CountryTranslationsRepository;
 use Module\Languages\Entity\Language;
 use Symfony\Component\Validator\Constraints as Assert;
 
-#[ORM\Entity(repositoryClass: CountryTranslationRepository::class)]
+#[ORM\Entity(repositoryClass: CountryTranslationsRepository::class)]
 #[ORM\Table(name: 'module_country_translations')]
-class CountryTranslation
+class CountryTranslations
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -20,9 +20,9 @@ class CountryTranslation
     #[ORM\JoinColumn(name: 'CountryID', referencedColumnName: 'CountryID', nullable: false)]
     private Countries $countryID;
 
-    #[ORM\ManyToOne(targetEntity: Language::class)]
-    #[ORM\JoinColumn(name: 'LanguageID', referencedColumnName: 'LanguageID', nullable: false)]
-    private Language $languageID;
+    #[ORM\Column(name: 'LanguageID', type: 'integer', nullable: false)]
+    #[Assert\NotBlank(message: "LanguageID is required.")]
+    private int $languageID;
 
     #[ORM\Column(name: 'CountryName', type: 'string', length: 100)]
     #[Assert\NotBlank(message: "CountryName is required.")]
@@ -48,12 +48,12 @@ class CountryTranslation
         return $this;
     }
 
-    public function getLanguageID(): Language
+    public function getLanguageID(): int
     {
         return $this->languageID;
     }
 
-    public function setLanguageID(Language $languageID): self
+    public function setLanguageID(int $languageID): self
     {
         $this->languageID = $languageID;
         return $this;

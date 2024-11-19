@@ -158,7 +158,7 @@ class CategoriesController
     }
 
     // Удаление категории по ее ID.
-    #[Route('/{id}/delete/', name: 'api_delete_category', methods: ['DELETE'])]
+    #[Route('/{id}/delete', name: 'api_delete_category', methods: ['DELETE'])]
     public function deleteCategory(int $id): JsonResponse
     {
         try {

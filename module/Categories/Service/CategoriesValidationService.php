@@ -6,22 +6,25 @@ use Module\Categories\Entity\Categories;
 use Module\Categories\Entity\CategoryTranslations;
 use Module\Categories\Repository\CategoriesRepository;
 use Module\Categories\Repository\CategoryTranslationsRepository;
-use Module\Languages\Entity\Language;
+use Module\Common\Service\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 
 class CategoriesValidationService
 {
     private CategoriesRepository $categoryRepository;
     private CategoryTranslationsRepository $translationRepository;
+    private LanguagesProxyService $languagesProxyService;
     private LoggerInterface $logger;
 
     public function __construct(
         CategoriesRepository           $categoryRepository,
         CategoryTranslationsRepository $translationRepository,
+        LanguagesProxyService $languagesProxyService,
         LoggerInterface                $logger
     ) {
         $this->categoryRepository = $categoryRepository;
         $this->translationRepository = $translationRepository;
+        $this->languagesProxyService = $languagesProxyService;
         $this->logger = $logger;
     }
 
@@ -60,8 +63,6 @@ class CategoriesValidationService
                 throw new \InvalidArgumentException("Field 'CategoryName' cannot consist only of numbers.");
             }
         }
-
-
         // Если нужна проверка других полей, добавляем их сюда
         if (isset($data['CategoryDescription']) && strlen($data['CategoryDescription']) > 500) { // пример ограничения
             $this->logger->error("CategoryDescription is too long.");
@@ -137,11 +138,14 @@ class CategoriesValidationService
     /**
      * Получение и проверка уникальности перевода.
      */
-    public function ensureUniqueTranslation(Categories $category, Language $language): void
+    public function ensureUniqueTranslation(Categories $category, int $languageId): void
     {
-        $existingTranslation = $this->translationRepository->findTranslationByCategoryAndLanguage($category, $language);
+        // Валидация языка через прокси
+        $this->languagesProxyService->validateLanguageID($languageId);
+        $existingTranslation = $this->translationRepository->findTranslationByCategoryAndLanguage($category, $languageId);
+
         if ($existingTranslation) {
-            $this->logger->error("Translation for Category ID {$category->getCategoryID()} with Language ID {$language->getLanguageID()} already exists.");
+            $this->logger->error("Translation for Category ID {$category->getCategoryID()} with Language ID {$languageId} already exists.");
             throw new \InvalidArgumentException("Translation for this language already exists for this category.");
         }
     }
@@ -152,58 +156,29 @@ class CategoriesValidationService
      * @param Categories $category
      * @return array
      */
-//    public function formatCategoryData(Categories $category, bool $detail = false): array
-//    {
-//        if($detail) {
-//            return [
-//                'Categories' => [
-//                    'CategoryID' => $category->getCategoryID(),
-//                    'CategoryLink' => $category->getCategoryLink(),
-//                ]
-//            ];
-//        } else {
-//            return [
-//                'CategoryID' => $category->getCategoryID(),
-//                'CategoryLink' => $category->getCategoryLink(),
-//            ];
-//        }
-//    }
-
-    /**
-     * Форматирование данных перевода категории для ответа.
-     *
-     * @param CategoryTranslations $translation
-     * @return array
-     */
-//    public function formatCategoryTranslationData(CategoryTranslations $translation): array
-//    {
-//        return [
-//            'TranslationID' => $translation->getCategoryTranslationID(),
-//            'LanguageID' => $translation->getLanguageID()->getLanguageID(),
-//            'CategoryName' => $translation->getCategoryName(),
-//            'CategoryDescription' => $translation->getCategoryDescription(),
-//        ];
-//    }
-
-
-    public function formatCategoryData(Categories $category, bool $detail = false, ?Language $language = null): array
+    public function formatCategoryData(Categories $category, bool $detail = false, ?int $languageId = null): array
     {
         $categoryData = [
             'CategoryID' => $category->getCategoryID(),
             'CategoryLink' => $category->getCategoryLink(),
+            'OgImage' => $category->getOgImage(),
         ];
 
         // Если требуется детальная информация и указан язык, получаем перевод
-        if ($detail && $language) {
-            $translation = $this->getCategoryTranslation($category, $language);
+        if ($detail && $languageId) {
+            try {
+            $this->languagesProxyService->getLanguageById($languageId);
+            $translation = $this->getCategoryTranslations($category, $languageId);
 
-            if ($translation) {
-                $categoryData['Translation'] = $this->formatCategoryTranslationData($translation);
-            } else {
-                $categoryData['Translation'] = 'Translation not available for the selected language.';
-            }
+                $categoryData['Translation'] = $translation
+                    ? $this->formatCategoryTranslationsData($translation)
+                    : 'Translation not available for the selected language.';
+
+            } catch (\Exception $e) {
+                $this->logger->warning("Failed to fetch translation for category ID {$category->getCategoryID()}: " . $e->getMessage());
+                    $categoryData['Translation'] = 'Language details unavailable.';
+                }
         }
-
         return $detail ? ['Categories' => $categoryData] : $categoryData;
     }
 
@@ -214,18 +189,31 @@ class CategoriesValidationService
      * @param CategoryTranslations $translation
      * @return array
      */
-    public function formatCategoryTranslationData(CategoryTranslations $translation): array
+    public function formatCategoryTranslationsData(CategoryTranslations $translation): array
     {
         return [
             'CategoryTranslationID' => $translation->getCategoryTranslationID(),
-            'LanguageID' => $translation->getLanguageID()->getLanguageID(),
+            'LanguageID' => $translation->getLanguageID(),
             'CategoryName' => $translation->getCategoryName(),
             'CategoryDescription' => $translation->getCategoryDescription(),
         ];
     }
 
-    public function getCategoryTranslation(Categories $category, Language $language): ?CategoryTranslations
+    public function getCategoryTranslations(Categories $category, int $languageId): ?CategoryTranslations
     {
-        return $this->translationRepository->findTranslationByCategoryAndLanguage($category, $language);
+        $translation = $this->translationRepository->findTranslationByCategoryAndLanguage($category, $languageId);
+
+        if (!$translation) {
+            $this->logger->info("No translation found for category ID {$category->getCategoryID()} and language ID {$languageId}.");
+        } else {
+            $this->logger->info("Translation found: " . json_encode([
+                    'CategoryID' => $category->getCategoryID(),
+                    'LanguageID' => $languageId,
+                    'TranslationID' => $translation->getCategoryTranslationID(),
+                ]));
+        }
+
+        return $translation;
     }
+
 }

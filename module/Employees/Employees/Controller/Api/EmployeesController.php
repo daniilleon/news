@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
 // Основной контроллер API для работы с сотрудниками.
-#[Route('/api/employees/staff')]
+#[Route('/api/employees/staff', name: 'api_employees_staff_')]
 class EmployeesController
 {
     private EmployeesService $employeeService;
@@ -26,7 +26,7 @@ class EmployeesController
     }
 
     // Получение списка всех сотрудников.
-    #[Route('/', name: 'api_get_employees', methods: ['GET'])]
+    #[Route('/', name: 'get_all', methods: ['GET'])]
     public function getEmployees(): JsonResponse
     {
         try {
@@ -39,10 +39,8 @@ class EmployeesController
         }
     }
 
-
-
     // Получение данных сотрудника по его ID.
-    #[Route('/{id}', name: 'api_get_employee', methods: ['GET'])]
+    #[Route('/{id}', name: 'get_id', methods: ['GET'])]
     public function getEmployee(int $id): JsonResponse
     {
         try {
@@ -61,9 +59,8 @@ class EmployeesController
         }
     }
 
-
     // Добавление нового сотрудника
-    #[Route('/add', name: 'api_add_employee', methods: ['POST'])]
+    #[Route('/add', name: 'add', methods: ['POST'])]
     public function addEmployee(Request $request): JsonResponse
     {
         try {
@@ -80,7 +77,7 @@ class EmployeesController
     }
 
     // Обновление данных сотрудника
-    #[Route('/{id}/update', name: 'api_update_employee', methods: ['PUT'])]
+    #[Route('/{id}/update', name: 'update_id', methods: ['PUT'])]
     public function updateEmployee(int $id, Request $request): JsonResponse
     {
         try {
@@ -96,7 +93,7 @@ class EmployeesController
     }
 
     // Активация или деактивация сотрудника
-    #[Route('/{id}/toggle-status', name: 'api_toggle_employee_status', methods: ['PUT'])]
+    #[Route('/{id}/toggle-status', name: 'toggle_status', methods: ['PUT'])]
     public function toggleEmployeeStatus(int $id, Request $request): JsonResponse
     {
         try {
@@ -115,7 +112,7 @@ class EmployeesController
 
 
     // Удаление сотрудника по его ID
-    #[Route('/{id}/delete', name: 'api_delete_employee', methods: ['DELETE'])]
+    #[Route('/{id}/delete', name: 'delete_id', methods: ['DELETE'])]
     public function deleteEmployee(int $id): JsonResponse
     {
         try {
@@ -130,7 +127,7 @@ class EmployeesController
     }
 
     //Для демо данных
-    #[Route('/seed', name: 'api_seed_employee', methods: ['POST'])]
+    #[Route('/seed', name: 'seed', methods: ['POST'])]
     public function seedEmployeeAndTranslations(): JsonResponse
     {
         try {

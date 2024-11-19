@@ -7,7 +7,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Module\Categories\Entity\CategoryTranslations;
 use Module\Categories\Entity\Categories;
-use Module\Languages\Entity\Language;
 
 class CategoryTranslationsRepository extends ServiceEntityRepository
 {
@@ -45,15 +44,14 @@ class CategoryTranslationsRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    public function findTranslationByCategoryAndLanguage(Categories $category, Language $language): ?CategoryTranslations
+    public function findTranslationByCategoryAndLanguage(Categories $category, int $languageId): ?CategoryTranslations
     {
         return $this->createQueryBuilder('t')
             ->andWhere('t.categoryID = :category')
-            ->andWhere('t.languageID = :language')
+            ->andWhere('t.languageID = :languageId')
             ->setParameter('category', $category)
-            ->setParameter('language', $language)
+            ->setParameter('languageId', $languageId)
             ->getQuery()
             ->getOneOrNullResult();
     }
-
 }

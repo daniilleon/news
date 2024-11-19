@@ -21,13 +21,13 @@ class Employee
     private ?int $id = null;
 
     // Связь с таблицей Languages для хранения идентификатора языка
-    #[ORM\ManyToOne(targetEntity: Language::class)]
-    #[ORM\JoinColumn(name: 'LanguageID', referencedColumnName: 'LanguageID', nullable: false)]
-    private Language $languageID;
+    #[ORM\Column(name: 'LanguageID', type: 'integer', nullable: false)]
+    #[Assert\NotBlank(message: "LanguageID is required.")]
+    private int $languageID;
 
-    #[ORM\ManyToOne(targetEntity: Categories::class)]
-    #[ORM\JoinColumn(name: 'CategoryID', referencedColumnName: 'CategoryID', nullable: false)]
-    private Categories $categoryID;
+    #[ORM\Column(name: 'CategoryID', type: 'integer', nullable: false)]
+    #[Assert\NotBlank(message: "CategoryID is required.")]
+    private int $categoryID;
 
     #[ORM\ManyToOne(targetEntity: EmployeesJobTitle::class)]
     #[ORM\JoinColumn(name: 'EmployeeJobTitleID', referencedColumnName: 'EmployeeJobTitleID', nullable: false)]
@@ -74,25 +74,23 @@ class Employee
         return $this->id;
     }
 
-    // Получение объекта языка, к которому относится сотрудник
-    public function getEmployeeLanguageID(): Language
+    public function getLanguageID(): int
     {
         return $this->languageID;
     }
 
-    // Установка объекта языка для сотрудника
-    public function setEmployeeLanguageID(Language $languageID): self
+    public function setLanguageID(int $languageID): self
     {
         $this->languageID = $languageID;
         return $this;
     }
 
-    public function getEmployeeCategoryID(): Categories
+    public function getCategoryID(): int
     {
         return $this->categoryID;
     }
 
-    public function setEmployeeCategoryID(Categories $categoryID): self
+    public function setCategoryID(int $categoryID): self
     {
         $this->categoryID = $categoryID;
         return $this;

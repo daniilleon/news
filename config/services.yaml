@@ -1,4 +1,5 @@
 parameters:
+
 services:
     # default configuration for services in *this* file
     _defaults:
@@ -7,6 +8,12 @@ services:
 
     Symfony\Component\Validator\Validator\ValidatorInterface:
         alias: validator
+
+    Module\Common\Service\LanguagesProxyService:
+        alias: languagesProxy
+
+    Module\Common\Service\CategoriesProxyService:
+        alias: categoriesProxy
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
@@ -28,10 +35,12 @@ services:
     Module\Categories\Controller\Api\CategoriesController:
         tags: [ 'controller.service_arguments' ]
         public: true
+        #condition: '%modules_config.modules.categories.enabled%'
 
     Module\Countries\Controller\Api\CountriesController:
         tags: [ 'controller.service_arguments' ]
         public: true
+        #condition: '%modules_config.modules.countries.enabled%'
 
 
     ###Модули Employees начало###
@@ -39,16 +48,22 @@ services:
     Module\Employees\Employees\Controller\Api\EmployeesController:
         tags: [ 'controller.service_arguments' ]
         public: true
+        #condition: '%modules_config.modules.employees.enabled%'
     #Модуль EmployeesJobTitle
     Module\Employees\EmployeesJobTitle\Controller\Api\EmployeesJobTitleController:
         tags: [ 'controller.service_arguments' ]
         public: true
+        #condition: '%modules_config.modules.employees.submodules.employeesJobTitle.enabled%'
     ###Модули Employees конец###
 
 
     ###Модули PERSONS начало###
     #Модуль MaritalStatus
     Module\Persons\MaritalStatus\Controller\Api\MaritalStatusController:
+        tags: [ 'controller.service_arguments' ]
+        public: true
+    #Модуль EducationLevels
+    Module\Persons\EducationLevels\Controller\Api\EducationLevelsController:
         tags: [ 'controller.service_arguments' ]
         public: true
     ###Модули PERSONS конец###

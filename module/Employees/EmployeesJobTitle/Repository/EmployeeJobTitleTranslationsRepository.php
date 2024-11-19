@@ -7,7 +7,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManagerInterface;
 use Module\Employees\EmployeesJobTitle\Entity\EmployeeJobTitleTranslations;
 use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
-use Module\Languages\Entity\Language;
+
 
 /**
  * @extends ServiceEntityRepository<EmployeeJobTitleTranslations>
@@ -22,7 +22,7 @@ class EmployeeJobTitleTranslationsRepository extends ServiceEntityRepository
         $this->entityManager = $entityManager;
     }
 
-    public function saveEmployeeJobTitleTranslation(EmployeeJobTitleTranslations $translation, bool $flush = false): void
+    public function saveEmployeeJobTitleTranslations(EmployeeJobTitleTranslations $translation, bool $flush = false): void
     {
         $this->entityManager->persist($translation);
         if ($flush) {
@@ -30,7 +30,7 @@ class EmployeeJobTitleTranslationsRepository extends ServiceEntityRepository
         }
     }
 
-    public function deleteEmployeeJobTitleTranslation(EmployeeJobTitleTranslations $translation, bool $flush = false): void
+    public function deleteEmployeeJobTitleTranslations(EmployeeJobTitleTranslations $translation, bool $flush = false): void
     {
         $this->entityManager->remove($translation);
         if ($flush) {
@@ -48,13 +48,13 @@ class EmployeeJobTitleTranslationsRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    public function findTranslationByEmployeeJobTitleAndLanguage(EmployeesJobTitle $employeesJobTitle, Language $language): ?EmployeeJobTitleTranslations
+    public function findTranslationsByEmployeeJobTitleAndLanguage(EmployeesJobTitle $employeesJobTitle, int $languageId): ?EmployeeJobTitleTranslations
     {
         return $this->createQueryBuilder('t')
             ->andWhere('t.employeeJobTitleID = :employeeJobTitle')
-            ->andWhere('t.languageID = :language')
-            ->setParameter('employeeJobTitle', $employeesJobTitle->getEmployeeJobTitleID())
-            ->setParameter('language', $language->getLanguageID())
+            ->andWhere('t.languageID = :languageId')
+            ->setParameter('employeeJobTitle', $employeesJobTitle)
+            ->setParameter('languageId', $languageId)
             ->getQuery()
             ->getOneOrNullResult();
     }

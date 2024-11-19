@@ -45,4 +45,8 @@ employee_job_title_controller:
 marital_status_controller:
     resource: '../module/Persons/MaritalStatus/Controller/Api/'
     type: attribute
+#Модуль EducationLevels
+education_levels_controller:
+    resource: '../module/Persons/EducationLevels/Controller/Api/'
+    type: attribute
 ###Модули PERSONS конец###

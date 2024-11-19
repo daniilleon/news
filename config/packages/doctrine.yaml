@@ -64,6 +64,13 @@ doctrine:
                 dir: '%kernel.project_dir%/module/Persons/MaritalStatus/Entity'
                 prefix: 'Module\Persons\MaritalStatus\Entity'
                 alias: PersonsModule_MaritalStatus
+            #Модуль MaritalStatus
+            PersonsModule_EducationLevels:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/module/Persons/EducationLevels/Entity'
+                prefix: 'Module\Persons\EducationLevels\Entity'
+                alias: PersonsModule_EducationLevels
             ###Модули PERSONS конец###
 
 #        controller_resolver:

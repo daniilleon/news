@@ -7,22 +7,27 @@ use Doctrine\Persistence\ManagerRegistry;
 use Module\Categories\Entity\Categories;
 use Module\Employees\Employees\Entity\Employee;
 use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
-use Module\Languages\Entity\Language;
+use Psr\Log\LoggerInterface;
 
 class EmployeesRepository extends ServiceEntityRepository
 {
     private EntityManagerInterface $entityManager;
+    private LoggerInterface $logger;
 
-    public function __construct(ManagerRegistry $registry, EntityManagerInterface $entityManager)
+    public function __construct(ManagerRegistry $registry, EntityManagerInterface $entityManager, LoggerInterface $logger)
     {
         parent::__construct($registry, Employee::class);
         $this->entityManager = $entityManager;
+        $this->logger = $logger;
+
     }
 
     public function saveEmployee(Employee $employee, bool $flush = false): void
     {
         $this->entityManager->persist($employee);
+        $this->logger->info("Persisting employee with ID: " . $employee->getEmployeeID());
         if ($flush) {
+            $this->logger->info("Flushing changes for employee with ID: " . $employee->getEmployeeID());
             $this->entityManager->flush();
         }
     }
@@ -60,11 +65,11 @@ class EmployeesRepository extends ServiceEntityRepository
     }
 
 
-    public function findEmployeesByCategory(Categories $category): array
+    public function findEmployeesByCategory(int $categoryId): array
     {
         return $this->createQueryBuilder('e')
-            ->andWhere('e.categoryID = :category')
-            ->setParameter('categoryID', $category)
+            ->andWhere('e.categoryID = :categoryId')
+            ->setParameter('categoryID', $categoryId)
             ->orderBy('e.employeeName', 'ASC')
             ->getQuery()
             ->getResult();
@@ -80,11 +85,11 @@ class EmployeesRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    public function findEmployeesByLanguage(Language $language): array
+    public function findEmployeesByLanguage(int $languageId): array
     {
         return $this->createQueryBuilder('e')
-            ->andWhere('e.languageID = :language')
-            ->setParameter('language', $language)
+            ->andWhere('e.languageID = :languageId')
+            ->setParameter('languageID', $languageId)
             ->orderBy('e.employeeName', 'ASC')
             ->getQuery()
             ->getResult();

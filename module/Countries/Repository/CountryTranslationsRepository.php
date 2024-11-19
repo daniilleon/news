@@ -5,24 +5,20 @@ namespace Module\Countries\Repository;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\ORM\EntityManagerInterface;
-use Module\Countries\Entity\CountryTranslation;
+use Module\Countries\Entity\CountryTranslations;
 use Module\Countries\Entity\Countries;
-use Module\Languages\Entity\Language;
 
-/**
- * @extends ServiceEntityRepository<CountryTranslation>
- */
-class CountryTranslationRepository extends ServiceEntityRepository
+class CountryTranslationsRepository extends ServiceEntityRepository
 {
     private EntityManagerInterface $entityManager;
 
     public function __construct(ManagerRegistry $registry, EntityManagerInterface $entityManager)
     {
-        parent::__construct($registry, CountryTranslation::class);
+        parent::__construct($registry, CountryTranslations::class);
         $this->entityManager = $entityManager;
     }
 
-    public function saveCountryTranslation(CountryTranslation $translation, bool $flush = false): void
+    public function saveCountryTranslations(CountryTranslations $translation, bool $flush = false): void
     {
         $this->entityManager->persist($translation);
         if ($flush) {
@@ -30,7 +26,7 @@ class CountryTranslationRepository extends ServiceEntityRepository
         }
     }
 
-    public function deleteCountryTranslation(CountryTranslation $translation, bool $flush = false): void
+    public function deleteCountryTranslations(CountryTranslations $translation, bool $flush = false): void
     {
         $this->entityManager->remove($translation);
         if ($flush) {
@@ -48,13 +44,13 @@ class CountryTranslationRepository extends ServiceEntityRepository
             ->getResult();
     }
 
-    public function findTranslationByCountryAndLanguage(Countries $country, Language $language): ?CountryTranslation
+    public function findTranslationsByCountryAndLanguage(Countries $country, int $languageId): ?CountryTranslations
     {
         return $this->createQueryBuilder('t')
             ->andWhere('t.countryID = :country')
-            ->andWhere('t.languageID = :language')
+            ->andWhere('t.languageID = :languageId')
             ->setParameter('country', $country)
-            ->setParameter('language', $language)
+            ->setParameter('languageId', $languageId)
             ->getQuery()
             ->getOneOrNullResult();
     }

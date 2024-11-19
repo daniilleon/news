@@ -2,26 +2,29 @@
 
 namespace Module\Persons\MaritalStatus\Service;
 
-use Module\Languages\Entity\Language;
 use Module\Persons\MaritalStatus\Entity\MaritalStatus;
 use Module\Persons\MaritalStatus\Entity\MaritalStatusTranslations;
 use Module\Persons\MaritalStatus\Repository\MaritalStatusRepository;
 use Module\Persons\MaritalStatus\Repository\MaritalStatusTranslationsRepository;
+use Module\Common\Service\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 
 class MaritalStatusValidationService
 {
     private MaritalStatusRepository $maritalStatusRepository;
     private MaritalStatusTranslationsRepository $translationRepository;
+    private LanguagesProxyService $languagesProxyService;
     private LoggerInterface $logger;
 
     public function __construct(
         MaritalStatusRepository            $maritalStatusRepository,
         MaritalStatusTranslationsRepository $translationRepository,
+        LanguagesProxyService $languagesProxyService,
         LoggerInterface                        $logger
     ) {
         $this->maritalStatusRepository = $maritalStatusRepository;
         $this->translationRepository = $translationRepository;
+        $this->languagesProxyService = $languagesProxyService;
         $this->logger = $logger;
     }
 
@@ -49,9 +52,9 @@ class MaritalStatusValidationService
             $maritalStatusName = $data['MaritalStatusName'];
 
             // Проверка на допустимые символы и длину
-            if (!preg_match('/^[\p{L}0-9 _-]{1,20}$/u', $maritalStatusName)) {
+            if (!preg_match('#^[\p{L}0-9 _\-/]{1,50}$#u', $maritalStatusName)) {
                 $this->logger->error("Invalid characters or length in MaritalStatusName.");
-                throw new \InvalidArgumentException("Field 'MaritalStatusName' can contain only letters, numbers, underscores, hyphens, spaces, and must be no more than 20 characters long.");
+                throw new \InvalidArgumentException("Field 'MaritalStatusName' can contain only letters, numbers, underscores, hyphens, spaces, slashes, and must be no more than 50 characters long.");
             }
 
             // Проверка, что MaritalStatusName не состоит только из цифр
@@ -129,11 +132,13 @@ class MaritalStatusValidationService
     /**
      * Получение и проверка уникальности перевода.
      */
-    public function ensureUniqueTranslation(MaritalStatus $maritalStatus, Language $language): void
+    public function ensureUniqueTranslation(MaritalStatus $maritalStatus, int $languageId): void
     {
-        $existingTranslation = $this->translationRepository->findTranslationByMaritalStatusAndLanguage($maritalStatus, $language);
+        $this->languagesProxyService->validateLanguageID($languageId);
+        $existingTranslation = $this->translationRepository->findTranslationByMaritalStatusAndLanguage($maritalStatus, $languageId);
+
         if ($existingTranslation) {
-            $this->logger->error("Translation for MaritalStatus ID {$maritalStatus->getMaritalStatusID()} with Language ID {$language->getLanguageID()} already exists.");
+            $this->logger->error("Translation for MaritalStatus ID {$maritalStatus->getMaritalStatusID()} with Language ID {$languageId} already exists.");
             throw new \InvalidArgumentException("Translation for this language already exists for this MaritalStatus.");
         }
     }
@@ -144,8 +149,7 @@ class MaritalStatusValidationService
      * @param MaritalStatus $maritalStatus
      * @return array
      */
-
-    public function formatMaritalStatusData(MaritalStatus $maritalStatus, bool $detail = false, ?Language $language = null): array
+    public function formatMaritalStatusData(MaritalStatus $maritalStatus, bool $detail = false, ?int $languageId = null): array
     {
         $maritalStatusData = [
             'MaritalStatusID' => $maritalStatus->getMaritalStatusID(),
@@ -153,19 +157,22 @@ class MaritalStatusValidationService
         ];
 
         // Если требуется детальная информация и указан язык, получаем перевод
-        if ($detail && $language) {
-            $translation = $this->getMaritalStatusTranslations($maritalStatus, $language);
+        if ($detail && $languageId) {
+            try {
+                $this->languagesProxyService->getLanguageById($languageId);
+                $translation = $this->getMaritalStatusTranslations($maritalStatus, $languageId);
 
-            if ($translation) {
-                $maritalStatusData['Translation'] = $this->formatMaritalStatusTranslationsData($translation);
-            } else {
-                $maritalStatusData['Translation'] = 'Translation not available for the selected language.';
+                $maritalStatusData['Translation'] = $translation
+                    ? $this->formatMaritalStatusTranslationsData($translation)
+                    : 'Translation not available for the selected language.';
+
+            } catch (\Exception $e) {
+                $this->logger->warning("Failed to fetch translation for category ID {$maritalStatus->getMaritalStatusID()}: " . $e->getMessage());
+                $maritalStatusData['Translation'] = 'Language details unavailable.';
             }
         }
-
-        return $detail ? ['MaritalStatus' => $maritalStatusData] : $maritalStatusData;
+        return $detail ? ['Categories' => $maritalStatusData] : $maritalStatusData;
     }
-
 
     /**
      * Форматирование данных перевода категории для ответа.
@@ -176,15 +183,27 @@ class MaritalStatusValidationService
     public function formatMaritalStatusTranslationsData(MaritalStatusTranslations $translation): array
     {
         return [
-            'MaritalStatusID' => $translation->getMaritalStatusTranslationID(),
-            'LanguageID' => $translation->getLanguageID()->getLanguageID(),
+            'MaritalStatusTranslationID' => $translation->getMaritalStatusTranslationID(),
+            'LanguageID' => $translation->getLanguageID(),
             'MaritalStatusName' => $translation->getMaritalStatusName(),
         ];
     }
 
-    public function getMaritalStatusTranslations(MaritalStatus $maritalStatus, Language $language): ?MaritalStatusTranslations
+    public function getMaritalStatusTranslations(MaritalStatus $maritalStatus, int $languageId): ?MaritalStatusTranslations
     {
-        return $this->translationRepository->findTranslationByMaritalStatusAndLanguage($maritalStatus, $language);
+        $translation = $this->translationRepository->findTranslationByMaritalStatusAndLanguage($maritalStatus, $languageId);
+
+        if (!$translation) {
+            $this->logger->info("No translation found for category ID {$maritalStatus->getMaritalStatusID()} and language ID {$languageId}.");
+        } else {
+            $this->logger->info("Translation found: " . json_encode([
+                    'MaritalStatusID' => $maritalStatus->getMaritalStatusID(),
+                    'LanguageID' => $languageId,
+                    'TranslationID' => $translation->getMaritalStatusTranslationID(),
+                ]));
+        }
+
+        return $translation;
     }
 
 

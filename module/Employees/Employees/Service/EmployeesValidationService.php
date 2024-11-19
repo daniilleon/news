@@ -2,31 +2,30 @@
 
 namespace Module\Employees\Employees\Service;
 
-use Module\Categories\Service\CategoriesValidationService;
 use Module\Employees\Employees\Entity\Employee;
 use Module\Employees\Employees\Repository\EmployeesRepository;
 use Module\Employees\EmployeesJobTitle\Service\EmployeesJobTitleValidationService;
-use Module\Languages\Service\LanguagesValidationService;
+use Module\Common\Service\LanguagesProxyService;
+use Module\Common\Service\CategoriesProxyService;
 use Psr\Log\LoggerInterface;
 
 class EmployeesValidationService
 {
     private EmployeesRepository $employeeRepository;
-
-    private LanguagesValidationService $languagesValidationService;
-    private CategoriesValidationService $categoriesValidationService;
+    private LanguagesProxyService $languagesProxyService;
+    private CategoriesProxyService $categoriesProxyService;
     private EmployeesJobTitleValidationService $employeesJobTitleValidationService;
     private LoggerInterface $logger;
 
     public function __construct(EmployeesRepository $employeeRepository,
-                                LanguagesValidationService $languagesValidationService,
-                                CategoriesValidationService $categoriesValidationService,
+                                LanguagesProxyService $languagesProxyService,
+                                CategoriesProxyService $categoriesProxyService,
                                 EmployeesJobTitleValidationService $employeesJobTitleValidationService,
                                 LoggerInterface $logger)
     {
         $this->employeeRepository = $employeeRepository;
-        $this->categoriesValidationService = $categoriesValidationService;
-        $this->languagesValidationService = $languagesValidationService;
+        $this->languagesProxyService = $languagesProxyService;
+        $this->categoriesProxyService = $categoriesProxyService;
         $this->employeesJobTitleValidationService = $employeesJobTitleValidationService;
         $this->logger = $logger;
     }
@@ -163,11 +162,44 @@ class EmployeesValidationService
             ],
             'EmployeeActive' => $employee->getEmployeeActive(),
         ];
-        // Добавляем результат `formatLanguageData`, получая либо полный объект, либо только LanguageID
-        // Вызов formatEmployeeData, где используется formatEmployeesJobTitleData
-        $employeeData += $this->employeesJobTitleValidationService->formatEmployeesJobTitleData($employee->getEmployeeJobTitleID(), true, $employee->getEmployeeLanguageID());
-        $employeeData += $this->categoriesValidationService->formatCategoryData($employee->getEmployeeCategoryID(), true, $employee->getEmployeeLanguageID());
-        $employeeData += $this->languagesValidationService->formatLanguageData($employee->getEmployeeLanguageID(), $detailedLanguage);
+
+        // Получение данных о языке через прокси
+        $languageId = $employee->getLanguageID();
+        try {
+            $languageData = $this->languagesProxyService->getLanguageById($languageId);
+            $employeeData['Language'] = $languageData;
+        } catch (\Exception $e) {
+            $this->logger->warning("Failed to fetch language for Employee ID {$employee->getEmployeeID()}: " . $e->getMessage());
+            $employeeData['Language'] = 'Language data unavailable.';
+        }
+
+        // Получение данных о категории через прокси
+        $categoryId = $employee->getCategoryID();
+        try {
+            $categoryData = $this->categoriesProxyService->getCategoryById($categoryId, $languageId);
+            $employeeData['Category'] = $categoryData;
+            $this->logger->info("Category data for Employee ID {$employee->getEmployeeID()}: " . json_encode($categoryData));
+        } catch (\Exception $e) {
+            $this->logger->info("Category data for Employee ID {$employee->getEmployeeID()}: " . json_encode($categoryData));
+            $this->logger->warning("Failed to fetch category for Employee ID {$employee->getEmployeeID()}: " . $e->getMessage());
+            $employeeData['Category'] = 'Category data unavailable.';
+        }
+
+        //$this->employeesJobTitleValidationService->formatEmployeesJobTitleData($employee->getEmployeeJobTitleID(), true, $employee->getEmployeeLanguageID());
+        // Получение данных о должности
+        $jobTitleId = $employee->getEmployeeJobTitleID();
+        try {
+            $jobTitleData = $this->employeesJobTitleValidationService->formatEmployeesJobTitleData(
+                $jobTitleId,
+                true,
+                $languageId
+            );
+            $employeeData['JobTitle'] = $jobTitleData;
+        } catch (\Exception $e) {
+            $this->logger->warning("Failed to fetch job title for Employee ID {$employee->getEmployeeID()}: " . $e->getMessage());
+            $employeeData['JobTitle'] = 'Job title data unavailable.';
+        }
+
 
         return $employeeData;
     }

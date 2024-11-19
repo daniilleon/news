@@ -6,11 +6,9 @@ use Module\Categories\Entity\Categories;
 use Module\Categories\Entity\CategoryTranslations;
 use Module\Categories\Repository\CategoriesRepository;
 use Module\Categories\Repository\CategoryTranslationsRepository;
-use \Module\Categories\Service\CategoriesValidationService;
 use Module\Common\Helpers\FieldUpdateHelper;
 use Module\Common\Service\ImageService;
-use Module\Languages\Repository\LanguagesRepository;
-use Module\Languages\Service\LanguagesValidationService;
+use Module\Common\Service\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -18,8 +16,7 @@ class CategoriesService
 {
     private CategoriesRepository $categoryRepository;
     private CategoryTranslationsRepository $translationRepository;
-    private LanguagesRepository $languageRepository;
-    private LanguagesValidationService $languagesValidationService;
+    private LanguagesProxyService $languagesProxyService;
     private CategoriesValidationService $categoriesValidationService;
     private LoggerInterface $logger;
     private ImageService $imageService;
@@ -28,8 +25,7 @@ class CategoriesService
     public function __construct(
         CategoriesRepository $categoryRepository,
         CategoryTranslationsRepository $translationRepository,
-        LanguagesRepository $languageRepository,
-        LanguagesValidationService $languagesValidationService,
+        LanguagesProxyService $languagesProxyService,
         CategoriesValidationService $categoriesValidationService,
         ImageService $imageService,
         FieldUpdateHelper $helper,
@@ -37,8 +33,7 @@ class CategoriesService
     ) {
         $this->categoryRepository = $categoryRepository;
         $this->translationRepository = $translationRepository;
-        $this->languageRepository = $languageRepository;
-        $this->languagesValidationService = $languagesValidationService;
+        $this->languagesProxyService = $languagesProxyService;
         $this->categoriesValidationService = $categoriesValidationService;
         $this->imageService = $imageService;
         $this->helper = $helper;
@@ -93,7 +88,7 @@ class CategoriesService
         // Форматируем данные категории и переводов
         return [
             'category' => $this->categoriesValidationService->formatCategoryData($category),
-            'translations' => array_map([$this->categoriesValidationService, 'formatCategoryTranslationData'], $translations),
+            'translations' => array_map([$this->categoriesValidationService, 'formatCategoryTranslationsData'], $translations),
             'message' => "Category with ID $id retrieved successfully."
         ];
     }
@@ -158,16 +153,16 @@ class CategoriesService
             // Проверяем обязательность поля CategoryName
             $this->categoriesValidationService->ensureUniqueCategoryName($data['CategoryName'] ?? null);
             // Проверка на наличие LanguageID и указать, что это обязательный параметр
-            $language = $this->languagesValidationService->validateLanguageID($data['LanguageID']  ?? null);
+            $languageData = $this->languagesProxyService->validateLanguageID($data['LanguageID']  ?? null);
 
             // Проверка уникальности перевода
-            $this->categoriesValidationService->ensureUniqueTranslation($category, $language);
+            $this->categoriesValidationService->ensureUniqueTranslation($category, $languageData['LanguageID']);
 
             // Создание нового перевода
             $translation = new CategoryTranslations();
             $this->helper->validateAndFilterFields($translation, $data);//проверяем список разрешенных полей
             $translation->setCategoryID($category);
-            $translation->setLanguageID($language);
+            $translation->setLanguageID($languageData['LanguageID']);
 
             // Применение дополнительных полей
             foreach ($data as $field => $value) {
@@ -180,12 +175,12 @@ class CategoriesService
             }
             $this->helper->validateAndFilterFields($translation, $data);//проверяем список разрешенных полей
             // Сохранение перевода
-            $this->translationRepository->saveCategoryTranslation($translation, true);
+            $this->translationRepository->saveCategoryTranslations($translation, true);
             $this->logger->info("Translation for Category ID $categoryId created successfully.");
 
             return [
                 'category' => $this->categoriesValidationService->formatCategoryData($category),
-                'translation' => $this->categoriesValidationService->formatCategoryTranslationData($translation),
+                'translation' => $this->categoriesValidationService->formatCategoryTranslationsData($translation),
                 'message' => 'Category translation added successfully.'
             ];
 
@@ -300,7 +295,7 @@ class CategoriesService
             }
 
             // Проверка, что LanguageID не был передан в запросе
-            $this->languagesValidationService->checkImmutableLanguageID($data, $translationId);
+            $this->languagesProxyService->checkImmutableLanguageID($data, $translation->getLanguageID());
 
             // Проверка наличия обязательных полей и их значений (в данных или в объекте)
             $requiredFields = ['CategoryName'];
@@ -333,12 +328,12 @@ class CategoriesService
                 }
             }
             $this->helper->validateAndFilterFields($translation, $data);//проверяем список разрешенных полей
-            $this->translationRepository->saveCategoryTranslation($translation, true);
+            $this->translationRepository->saveCategoryTranslations($translation, true);
             $this->logger->info("Translation updated successfully for Category ID: $categoryId and Translation ID: $translationId");
 
             return [
                 'category' => $this->categoriesValidationService->formatCategoryData($category),
-                'translation' => $this->categoriesValidationService->formatCategoryTranslationData($translation),
+                'translation' => $this->categoriesValidationService->formatCategoryTranslationsData($translation),
                 'message' => 'Category translation updated successfully.'
             ];
         } catch (\InvalidArgumentException $e) {
@@ -373,7 +368,7 @@ class CategoriesService
             }
 
             // Удаление перевода
-            $this->translationRepository->deleteCategoryTranslation($translation, true);
+            $this->translationRepository->deleteCategoryTranslations($translation, true);
             $this->logger->info("Translation with ID $translationId successfully deleted for Category ID $categoryId.");
 
             return [
@@ -406,7 +401,7 @@ class CategoriesService
             // Удаляем переводы категории
             $translations = $this->translationRepository->findTranslationsByCategory($category);
             foreach ($translations as $translation) {
-                $this->translationRepository->deleteCategoryTranslation($translation, true);
+                $this->translationRepository->deleteCategoryTranslations($translation, true);
             }
 
             // Удаляем саму категорию
@@ -429,12 +424,6 @@ class CategoriesService
     /*/
     Методы для демо данных
     /*/
-
-
-
-
-
-
     public function seedCategoriesAndTranslations(): array
     {
         $this->logger->info("Executing seedJobTitlesAndTranslations method.");
@@ -470,12 +459,12 @@ class CategoriesService
         // Данные для переводов категорий, привязанные к CategoryID
         $translationsData = [
                 $categoryIds['first'] ?? null => [
-                ["CategoryName" => "Первая категория", "CategoryDescription" => "Описание первой категории", "LanguageID" => 2],
-                ["CategoryName" => "First category ", "CategoryDescription" => "Category first description", "LanguageID" => 1]
-            ],
+                    ["CategoryName" => "Первая категория", "CategoryDescription" => "Описание первой категории", "LanguageID" => 2],
+                    ["CategoryName" => "First Category", "CategoryDescription" => "First Category Description", "LanguageID" => 1]
+                ],
                 $categoryIds['second'] ?? null => [
-                ["CategoryName" => "Вторая категория", "CategoryDescription" => "Описание второй категории", "LanguageID" => 2],
-                ["CategoryName" => "Second category ", "CategoryDescription" => "Category second description", "LanguageID" => 1]
+                ["CategoryName" => "Вторая категория", "CategoryDescription" => "Описание первой категории", "LanguageID" => 2],
+                ["CategoryName" => "Second Category", "CategoryDescription" => "Second Category Description", "LanguageID" => 1]
             ],
         ];
 
@@ -491,21 +480,22 @@ class CategoriesService
 
             foreach ($translations as $translationData) {
                 try {
-                    $language = $this->languagesValidationService->validateLanguageID($translationData['LanguageID']);
-                    $this->categoriesValidationService->ensureUniqueTranslation($category, $language);
+                    $languageData = $this->languagesProxyService->validateLanguageID($translationData['LanguageID']);
+                    $languageId = $languageData['LanguageID'];
+                    $this->categoriesValidationService->ensureUniqueTranslation($category, $languageId);
 
                     $translation = new CategoryTranslations();
                     $translation->setCategoryID($category);
-                    $translation->setLanguageID($language);
+                    $translation->setLanguageID($languageId);
                     $translation->setCategoryName($translationData['CategoryName']);
                     $translation->setCategoryDescription($translationData['CategoryDescription']);
 
                     $this->translationRepository->saveCategoryTranslations($translation, true);
-                    $createdTranslations[] = $this->categoriesValidationService->formatCategoryTranslationData($translation);
+                    $createdTranslations[] = $this->categoriesValidationService->formatCategoryTranslationsData($translation);
 
-                    $this->logger->info("Translation for JobTitle ID '{$categoryIds}' and LanguageID '{$language->getLanguageID()}' created successfully.");
+                    $this->logger->info("Translation for Category ID '{$categoryIds}' and LanguageID '{$languageId}' created successfully.");
                 } catch (\Exception $e) {
-                    $this->logger->error("Failed to add translation for JobTitle ID '$categoryIds': " . $e->getMessage());
+                    $this->logger->error("Failed to add translation for Category ID '$categoryIds': " . $e->getMessage());
                 }
             }
         }
@@ -513,7 +503,7 @@ class CategoriesService
         return [
             'categories' => $createdCategories,
             'translations' => $createdTranslations,
-            'message' => 'Job titles and translations seeded successfully.'
+            'message' => 'Category and translations seeded successfully.'
         ];
     }
 }

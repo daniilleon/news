@@ -6,22 +6,25 @@ use Module\Employees\EmployeesJobTitle\Entity\EmployeeJobTitleTranslations;
 use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
 use Module\Employees\EmployeesJobTitle\Repository\EmployeeJobTitleTranslationsRepository;
 use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
-use Module\Languages\Entity\Language;
+use Module\Common\Service\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 
 class EmployeesJobTitleValidationService
 {
     private EmployeesJobTitleRepository $employeesJobTitleRepository;
     private EmployeeJobTitleTranslationsRepository $translationRepository;
+    private LanguagesProxyService $languagesProxyService;
     private LoggerInterface $logger;
 
     public function __construct(
         EmployeesJobTitleRepository            $employeesJobTitleRepository,
         EmployeeJobTitleTranslationsRepository $translationRepository,
+        LanguagesProxyService         $languagesProxyService,
         LoggerInterface                        $logger
     ) {
         $this->employeesJobTitleRepository = $employeesJobTitleRepository;
         $this->translationRepository = $translationRepository;
+        $this->languagesProxyService = $languagesProxyService;
         $this->logger = $logger;
     }
 
@@ -129,9 +132,12 @@ class EmployeesJobTitleValidationService
     /**
      * Получение и проверка уникальности перевода.
      */
-    public function ensureUniqueTranslation(EmployeesJobTitle $employeeJobTitle, Language $language): void
+    public function ensureUniqueTranslation(EmployeesJobTitle $employeeJobTitle, int $languageId): void
     {
-        $existingTranslation = $this->translationRepository->findTranslationByEmployeeJobTitleAndLanguage($employeeJobTitle, $language);
+        // Валидация языка через прокси
+        $this->languagesProxyService->validateLanguageID($languageId);
+        $existingTranslation = $this->translationRepository->findTranslationsByEmployeeJobTitleAndLanguage($employeeJobTitle, $languageId);
+
         if ($existingTranslation) {
             $this->logger->error("Translation for EmployeeJobTitle ID {$employeeJobTitle->getEmployeeJobTitleID()} with Language ID {$language->getLanguageID()} already exists.");
             throw new \InvalidArgumentException("Translation for this language already exists for this EmployeeJobTitle.");
@@ -139,48 +145,34 @@ class EmployeesJobTitleValidationService
     }
 
     /**
-     * Форматирование данных категории для ответа.
+     * Форматирование данных должности для ответа.
      *
      * @param EmployeesJobTitle $employeeJobTitle
      * @return array
      */
-//    public function formatEmployeesJobTitleData(EmployeesJobTitle $employeeJobTitle, bool $detail = false): array
-//    {
-//        if($detail) {
-//            return [
-//                'EmployeesJobTitle' => [
-//                    'EmployeeJobTitleID' => $employeeJobTitle->getEmployeeJobTitleID(),
-//                    'EmployeeJobTitleCode' => $employeeJobTitle->getEmployeeJobTitleCode(),
-//                    'Translate' => ['Здесь переводы из formatEmployeeJobTitleTranslationData'],
-//                ]
-//            ];
-//        } else {
-//            return [
-//                'EmployeeJobTitleID' => $employeeJobTitle->getEmployeeJobTitleID(),
-//                'EmployeeJobTitleCode' => $employeeJobTitle->getEmployeeJobTitleCode(),
-//            ];
-//        }
-//    }
-
-    public function formatEmployeesJobTitleData(EmployeesJobTitle $employeeJobTitle, bool $detail = false, ?Language $language = null): array
+    public function formatEmployeesJobTitleData(EmployeesJobTitle $employeeJobTitle, bool $detail = false, ?int $languageId = null): array
     {
-        $jobTitleData = [
+        $employeeJobTitleData = [
             'EmployeeJobTitleID' => $employeeJobTitle->getEmployeeJobTitleID(),
             'EmployeeJobTitleCode' => $employeeJobTitle->getEmployeeJobTitleCode(),
         ];
 
         // Если требуется детальная информация и указан язык, получаем перевод
-        if ($detail && $language) {
-            $translation = $this->getJobTitleTranslation($employeeJobTitle, $language);
+        if ($detail && $languageId) {
+            try{
+                $this->languagesProxyService->getLanguageById($languageId);
+                $translation = $this->getJobTitleTranslation($employeeJobTitle, $languageId);
 
-            if ($translation) {
-                $jobTitleData['Translation'] = $this->formatEmployeeJobTitleTranslationData($translation);
-            } else {
-                $jobTitleData['Translation'] = 'Translation not available for the selected language.';
+                $employeeJobTitleData['Translation'] = $translation
+                    ? $this->formatEmployeeJobTitleTranslationData($translation)
+                    : 'Translation not available for the selected language.';
+
+            } catch (\Exception $e) {
+                $employeeJobTitleData['Translation'] = 'Language details unavailable.';
             }
         }
 
-        return $detail ? ['EmployeesJobTitle' => $jobTitleData] : $jobTitleData;
+        return $detail ? ['EmployeesJobTitle' => $employeeJobTitleData] : $employeeJobTitleData;
     }
 
 
@@ -194,14 +186,14 @@ class EmployeesJobTitleValidationService
     {
         return [
             'EmployeeJobTitleID' => $translation->getEmployeeJobTitleTranslationID(),
-            'LanguageID' => $translation->getLanguageID()->getLanguageID(),
+            'LanguageID' => $translation->getLanguageID(),
             'EmployeeJobTitleName' => $translation->getEmployeeJobTitleName(),
         ];
     }
 
-    public function getJobTitleTranslation(EmployeesJobTitle $employeeJobTitle, Language $language): ?EmployeeJobTitleTranslations
+    public function getJobTitleTranslation(EmployeesJobTitle $employeeJobTitle, int $languageId): ?EmployeeJobTitleTranslations
     {
-        return $this->translationRepository->findTranslationByEmployeeJobTitleAndLanguage($employeeJobTitle, $language);
+        return $this->translationRepository->findTranslationsByEmployeeJobTitleAndLanguage($employeeJobTitle, $languageId);
     }
 
 

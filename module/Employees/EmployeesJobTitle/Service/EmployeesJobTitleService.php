@@ -8,17 +8,16 @@ use Module\Employees\EmployeesJobTitle\Entity\EmployeeJobTitleTranslations;
 use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
 use Module\Employees\EmployeesJobTitle\Repository\EmployeeJobTitleTranslationsRepository;
 use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
-use \Module\Employees\EmployeesJobTitle\Service\EmployeesJobTitleValidationService;
-use Module\Languages\Repository\LanguagesRepository;
-use Module\Languages\Service\LanguagesValidationService;
+use Module\Employees\EmployeesJobTitle\Service\EmployeesJobTitleValidationService;
+use Module\Common\Service\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class EmployeesJobTitleService
 {
     private EmployeesJobTitleRepository $employeesJobTitleRepository;
     private EmployeeJobTitleTranslationsRepository $translationRepository;
-    private LanguagesRepository $languageRepository;
-    private LanguagesValidationService $languagesValidationService;
+    private LanguagesProxyService $languagesProxyService;
     private EmployeesJobTitleValidationService $employeesJobTitleValidationService;
     private LoggerInterface $logger;
     private ImageService $imageService;
@@ -27,8 +26,7 @@ class EmployeesJobTitleService
     public function __construct(
         EmployeesJobTitleRepository            $employeesJobTitleRepository,
         EmployeeJobTitleTranslationsRepository $translationRepository,
-        LanguagesRepository                    $languageRepository,
-        LanguagesValidationService             $languagesValidationService,
+        LanguagesProxyService         $languagesProxyService,
         EmployeesJobTitleValidationService     $employeesJobTitleValidationService,
         ImageService                           $imageService,
         FieldUpdateHelper                      $helper,
@@ -36,8 +34,7 @@ class EmployeesJobTitleService
     ) {
         $this->employeesJobTitleRepository = $employeesJobTitleRepository;
         $this->translationRepository = $translationRepository;
-        $this->languageRepository = $languageRepository;
-        $this->languagesValidationService = $languagesValidationService;
+        $this->languagesProxyService = $languagesProxyService;
         $this->employeesJobTitleValidationService = $employeesJobTitleValidationService;
         $this->imageService = $imageService;
         $this->helper = $helper;
@@ -121,7 +118,7 @@ class EmployeesJobTitleService
             $this->helper->validateAndFilterFields($employeeJobTitle, $data);//проверяем список разрешенных полей
             $employeeJobTitle->setEmployeeJobTitleCode($data['EmployeeJobTitleCode']);
 
-            // Сохраняем должностьу в репозитории
+            // Сохраняем должность в репозитории
             $this->employeesJobTitleRepository->saveEmployeeJobTitle($employeeJobTitle, true);
             $this->logger->info("EmployeeJobTitle '{$employeeJobTitle->getEmployeeJobTitleCode()}' created successfully.");
 
@@ -156,22 +153,21 @@ class EmployeesJobTitleService
         try {
             // Проверяем существование должности
             $employeeJobTitle = $this->employeesJobTitleValidationService->validateEmployeeJobTitleExists($employeeJobTitleId);
-
             // Проверяем наличие выполняем валидацию
             $this->employeesJobTitleValidationService->validateEmployeeJobTitleTranslationData($data);
             // Проверяем обязательность поля EmployeeJobTitleName
             $this->employeesJobTitleValidationService->ensureUniqueEmployeeJobTitleName($data['EmployeeJobTitleName'] ?? null);
             // Проверка на наличие LanguageID и указать, что это обязательный параметр
-            $language = $this->languagesValidationService->validateLanguageID($data['LanguageID']  ?? null);
+            $languageData = $this->languagesProxyService->validateLanguageID($data['LanguageID']  ?? null);
 
             // Проверка уникальности перевода
-            $this->employeesJobTitleValidationService->ensureUniqueTranslation($employeeJobTitle, $language);
+            $this->employeesJobTitleValidationService->ensureUniqueTranslation($employeeJobTitle, $languageData['LanguageID']);
 
             // Создание нового перевода
             $translation = new EmployeeJobTitleTranslations();
             $this->helper->validateAndFilterFields($translation, $data);//проверяем список разрешенных полей
             $translation->setEmployeeJobTitleID($employeeJobTitle);
-            $translation->setLanguageID($language);
+            $translation->setLanguageID($languageData['LanguageID']);
 
             // Применение дополнительных полей
             foreach ($data as $field => $value) {
@@ -184,7 +180,7 @@ class EmployeesJobTitleService
             }
             $this->helper->validateAndFilterFields($translation, $data);//проверяем список разрешенных полей
             // Сохранение перевода
-            $this->translationRepository->saveEmployeeJobTitleTranslation($translation, true);
+            $this->translationRepository->saveEmployeeJobTitleTranslations($translation, true);
             $this->logger->info("Translation for EmployeeJobTitle ID $employeeJobTitleId created successfully.");
 
             return [
@@ -276,8 +272,7 @@ class EmployeesJobTitleService
             }
 
             // Проверка, что LanguageID не был передан в запросе
-            $this->languagesValidationService->checkImmutableLanguageID($data, $translationId);
-
+            $this->languagesProxyService->checkImmutableLanguageID($data, $translation->getLanguageID());
 
             // Проверка наличия обязательных полей и их значений (в данных или в объекте)
             $requiredFields = ['EmployeeJobTitleName'];
@@ -310,7 +305,7 @@ class EmployeesJobTitleService
                 }
             }
             $this->helper->validateAndFilterFields($translation, $data);//проверяем список разрешенных полей
-            $this->translationRepository->saveEmployeeJobTitleTranslation($translation, true);
+            $this->translationRepository->saveEmployeeJobTitleTranslations($translation, true);
             $this->logger->info("Translation updated successfully for EmployeeJobTitle ID: $employeeJobTitleId and Translation ID: $translationId");
 
             return [
@@ -350,7 +345,7 @@ class EmployeesJobTitleService
             }
 
             // Удаление перевода
-            $this->translationRepository->deleteEmployeeJobTitleTranslation($translation, true);
+            $this->translationRepository->deleteEmployeeJobTitleTranslations($translation, true);
             $this->logger->info("Translation with ID $translationId successfully deleted for EmployeeJobTitle ID $employeeJobTitleId.");
 
             return [
@@ -383,7 +378,7 @@ class EmployeesJobTitleService
             // Удаляем переводы должности
             $translations = $this->translationRepository->findTranslationsByEmployeesJobTitle($employeeJobTitle);
             foreach ($translations as $translation) {
-                $this->translationRepository->deleteEmployeeJobTitleTranslation($translation, true);
+                $this->translationRepository->deleteEmployeeJobTitleTranslations($translation, true);
             }
 
             // Удаляем саму должность
@@ -463,18 +458,19 @@ class EmployeesJobTitleService
 
             foreach ($translations as $translationData) {
                 try {
-                    $language = $this->languagesValidationService->validateLanguageID($translationData['LanguageID']);
-                    $this->employeesJobTitleValidationService->ensureUniqueTranslation($jobTitle, $language);
+                    $languageData = $this->languagesProxyService->validateLanguageID($translationData['LanguageID']);
+                    $languageId = $languageData['LanguageID'];
+                    $this->employeesJobTitleValidationService->ensureUniqueTranslation($jobTitle, $languageId);
 
                     $translation = new EmployeeJobTitleTranslations();
                     $translation->setEmployeeJobTitleID($jobTitle);
-                    $translation->setLanguageID($language);
+                    $translation->setLanguageID($languageId);
                     $translation->setEmployeeJobTitleName($translationData['EmployeeJobTitleName']);
 
-                    $this->translationRepository->saveEmployeeJobTitleTranslation($translation, true);
+                    $this->translationRepository->saveEmployeeJobTitleTranslations($translation, true);
                     $createdTranslations[] = $this->employeesJobTitleValidationService->formatEmployeeJobTitleTranslationData($translation);
 
-                    $this->logger->info("Translation for JobTitle ID '{$jobTitleId}' and LanguageID '{$language->getLanguageID()}' created successfully.");
+                    $this->logger->info("Translation for JobTitle ID '{$jobTitleId}' and LanguageID '{$languageId}' created successfully.");
                 } catch (\Exception $e) {
                     $this->logger->error("Failed to add translation for JobTitle ID '$jobTitleId': " . $e->getMessage());
                 }

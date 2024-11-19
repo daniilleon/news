@@ -4,21 +4,18 @@ namespace Module\Persons\MaritalStatus\Service;
 
 use Module\Common\Helpers\FieldUpdateHelper;
 use Module\Common\Service\ImageService;
-use Module\Languages\Repository\LanguagesRepository;
-use Module\Languages\Service\LanguagesValidationService;
-use \Module\Persons\MaritalStatus\Service\MaritalStatusValidationService;
 use Module\Persons\MaritalStatus\Entity\MaritalStatus;
 use Module\Persons\MaritalStatus\Entity\MaritalStatusTranslations;
 use Module\Persons\MaritalStatus\Repository\MaritalStatusRepository;
 use Module\Persons\MaritalStatus\Repository\MaritalStatusTranslationsRepository;
+use Module\Common\Service\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 
 class MaritalStatusService
 {
     private MaritalStatusRepository $maritalStatusRepository;
     private MaritalStatusTranslationsRepository $translationRepository;
-    private LanguagesRepository $languageRepository;
-    private LanguagesValidationService $languagesValidationService;
+    private LanguagesProxyService $languagesProxyService;
     private MaritalStatusValidationService $maritalStatusValidationService;
     private LoggerInterface $logger;
     private ImageService $imageService;
@@ -27,8 +24,7 @@ class MaritalStatusService
     public function __construct(
         MaritalStatusRepository            $maritalStatusRepository,
         MaritalStatusTranslationsRepository $translationRepository,
-        LanguagesRepository                    $languageRepository,
-        LanguagesValidationService             $languagesValidationService,
+        LanguagesProxyService $languagesProxyService,
         MaritalStatusValidationService     $maritalStatusValidationService,
         ImageService                           $imageService,
         FieldUpdateHelper                      $helper,
@@ -36,8 +32,7 @@ class MaritalStatusService
     ) {
         $this->maritalStatusRepository = $maritalStatusRepository;
         $this->translationRepository = $translationRepository;
-        $this->languageRepository = $languageRepository;
-        $this->languagesValidationService = $languagesValidationService;
+        $this->languagesProxyService = $languagesProxyService;
         $this->maritalStatusValidationService = $maritalStatusValidationService;
         $this->imageService = $imageService;
         $this->helper = $helper;
@@ -162,16 +157,16 @@ class MaritalStatusService
             // Проверяем обязательность поля MaritalStatusName
             $this->maritalStatusValidationService->ensureUniqueMaritalStatusName($data['MaritalStatusName'] ?? null);
             // Проверка на наличие LanguageID и указать, что это обязательный параметр
-            $language = $this->languagesValidationService->validateLanguageID($data['LanguageID']  ?? null);
+            $languageData = $this->languagesProxyService->validateLanguageID($data['LanguageID']  ?? null);
 
             // Проверка уникальности перевода
-            $this->maritalStatusValidationService->ensureUniqueTranslation($maritalStatus, $language);
+            $this->maritalStatusValidationService->ensureUniqueTranslation($maritalStatus, $languageData['LanguageID']);
 
             // Создание нового перевода
             $translation = new MaritalStatusTranslations();
             $this->helper->validateAndFilterFields($translation, $data);//проверяем список разрешенных полей
             $translation->setMaritalStatusID($maritalStatus);
-            $translation->setLanguageID($language);
+            $translation->setLanguageID($languageData['LanguageID']);
 
             // Применение дополнительных полей
             foreach ($data as $field => $value) {
@@ -184,7 +179,7 @@ class MaritalStatusService
             }
             $this->helper->validateAndFilterFields($translation, $data);//проверяем список разрешенных полей
             // Сохранение перевода
-            $this->translationRepository->saveMaritalStatusTranslation($translation, true);
+            $this->translationRepository->saveMaritalStatusTranslations($translation, true);
             $this->logger->info("Translation for MaritalStatus ID $maritalStatusId created successfully.");
 
             return [
@@ -277,8 +272,7 @@ class MaritalStatusService
             }
 
             // Проверка, что LanguageID не был передан в запросе
-            $this->languagesValidationService->checkImmutableLanguageID($data, $translationId);
-
+            $this->languagesProxyService->checkImmutableLanguageID($data, $translation->getLanguageID());
 
             // Проверка наличия обязательных полей и их значений (в данных или в объекте)
             $requiredFields = ['MaritalStatusName'];
@@ -311,7 +305,7 @@ class MaritalStatusService
                 }
             }
             $this->helper->validateAndFilterFields($translation, $data);//проверяем список разрешенных полей
-            $this->translationRepository->saveMaritalStatusTranslation($translation, true);
+            $this->translationRepository->saveMaritalStatusTranslations($translation, true);
             $this->logger->info("Translation updated successfully for MaritalStatus ID: $maritalStatusId and Translation ID: $translationId");
 
             return [
@@ -351,7 +345,7 @@ class MaritalStatusService
             }
 
             // Удаление перевода
-            $this->translationRepository->deleteMaritalStatusTranslation($translation, true);
+            $this->translationRepository->deleteMaritalStatusTranslations($translation, true);
             $this->logger->info("Translation with ID $translationId successfully deleted for MaritalStatus ID $maritalStatusId.");
 
             return [
@@ -384,7 +378,7 @@ class MaritalStatusService
             // Удаляем переводы Статуса семейного положения
             $translations = $this->translationRepository->findTranslationsByMaritalStatus($maritalStatus);
             foreach ($translations as $translation) {
-                $this->translationRepository->deleteMaritalStatusTranslation($translation, true);
+                $this->translationRepository->deleteMaritalStatusTranslations($translation, true);
             }
 
             // Удаляем сам Статус семейного положения
@@ -410,7 +404,9 @@ class MaritalStatusService
         // Данные для предустановленных Статусов семейного положения
         $maritalStatusData = [
             ["MaritalStatusCode" => "MARRIED"],
-            ["MaritalStatusCode" => "DIVORCED"]
+            ["MaritalStatusCode" => "DIVORCED"],
+            ["MaritalStatusCode" => "WIDOWED"],
+            ["MaritalStatusCode" => "SINGLE"]
         ];
 
         $createdMaritalStatus = [];
@@ -444,6 +440,14 @@ class MaritalStatusService
                 $maritalStatusIds['DIVORCED'] ?? null => [
                 ["MaritalStatusName" => "Разведен", "LanguageID" => 2],
                 ["MaritalStatusName" => "Divorced", "LanguageID" => 1]
+            ],
+                $maritalStatusIds['WIDOWED'] ?? null => [
+                ["MaritalStatusName" => "Вдовец/Вдова", "LanguageID" => 2],
+                ["MaritalStatusName" => "Widowed", "LanguageID" => 1]
+            ],
+                $maritalStatusIds['SINGLE'] ?? null => [
+                ["MaritalStatusName" => "Свободен/Свободна", "LanguageID" => 2],
+                ["MaritalStatusName" => "Single", "LanguageID" => 1]
             ]
         ];
 
@@ -459,18 +463,19 @@ class MaritalStatusService
 
             foreach ($translations as $translationData) {
                 try {
-                    $language = $this->languagesValidationService->validateLanguageID($translationData['LanguageID']);
-                    $this->maritalStatusValidationService->ensureUniqueTranslation($maritalStatus, $language);
+                    $languageData = $this->languagesProxyService->validateLanguageID($translationData['LanguageID']);
+                    $languageId = $languageData['LanguageID'];
+                    $this->maritalStatusValidationService->ensureUniqueTranslation($maritalStatus, $languageId);
 
                     $translation = new MaritalStatusTranslations();
                     $translation->setMaritalStatusID($maritalStatus);
-                    $translation->setLanguageID($language);
+                    $translation->setLanguageID($languageId);
                     $translation->setMaritalStatusName($translationData['MaritalStatusName']);
 
-                    $this->translationRepository->saveMaritalStatusTranslation($translation, true);
+                    $this->translationRepository->saveMaritalStatusTranslations($translation, true);
                     $createdTranslations[] = $this->maritalStatusValidationService->formatMaritalStatusTranslationsData($translation);
 
-                    $this->logger->info("Translation for MaritalStatus ID '{$maritalStatusId}' and LanguageID '{$language->getLanguageID()}' created successfully.");
+                    $this->logger->info("Translation for MaritalStatus ID '{$maritalStatusId}' and LanguageID '{$languageId}' created successfully.");
                 } catch (\Exception $e) {
                     $this->logger->error("Failed to add translation for MaritalStatus ID '$maritalStatusId': " . $e->getMessage());
                 }

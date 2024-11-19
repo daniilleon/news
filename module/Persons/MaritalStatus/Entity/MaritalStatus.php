@@ -8,7 +8,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 use DateTime;
 
 #[ORM\Entity(repositoryClass: MaritalStatusRepository::class)]
-#[ORM\Table(name: 'module_marital_status')]
+#[ORM\Table(name: 'module_persons_marital_status')]
 class MaritalStatus
 {
     #[ORM\Id]

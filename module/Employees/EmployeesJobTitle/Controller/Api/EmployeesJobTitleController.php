@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Module\Common\Factory\ResponseFactory;
 
 //Контроллер API для работы с должностями.
-#[Route('/api/employees/job_title')]
+#[Route('/api/employees/job_title', name: 'api_employees_jobtitle_')]
 class EmployeesJobTitleController
 {
     private EmployeesJobTitleService $employeesJobTitleService;
@@ -28,7 +28,7 @@ class EmployeesJobTitleController
     }
 
     // Получение списка всех Должностей.
-    #[Route('/', name: 'api_get_employees_job_title', methods: ['GET'])]
+    #[Route('/', name: 'get_all', methods: ['GET'])]
     public function getEmployeesJobTitle(): JsonResponse
     {
         try {
@@ -42,7 +42,7 @@ class EmployeesJobTitleController
     }
 
     // Получение данных Должности по её ID.
-    #[Route('/{employeeJobTitleId}', name: 'api_get_employee_job_title', methods: ['GET'])]
+    #[Route('/{employeeJobTitleId}', name: 'get_id', methods: ['GET'])]
     public function getEmployeeJobTitle(int $employeeJobTitleId): JsonResponse
     {
         try {
@@ -59,7 +59,7 @@ class EmployeesJobTitleController
     }
 
     // Создание новой должности (её кода).
-    #[Route('/add', name: 'api_add_employee_job_title_add', methods: ['POST'])]
+    #[Route('/add', name: 'add', methods: ['POST'])]
     public function addEmployeeJobTitle(Request $request): JsonResponse
     {
         try {
@@ -76,7 +76,7 @@ class EmployeesJobTitleController
     }
 
     // Добавление перевода для должности.
-    #[Route('/{employeeJobTitleId}/add-translation', name: 'api_add_employee_job_title_translation', methods: ['POST'])]
+    #[Route('/{employeeJobTitleId}/add-translation', name: 'add_translation', methods: ['POST'])]
     public function addEmployeeJobTitleTranslation(int $employeeJobTitleId, Request $request): JsonResponse
     {
         try {
@@ -92,7 +92,7 @@ class EmployeesJobTitleController
     }
 
     // Обновление только основной должности (кода)
-    #[Route('/{employeeJobTitleId}/update', name: 'api_update_employee_job_title', methods: ['PUT'])]
+    #[Route('/{employeeJobTitleId}/update', name: 'update_id', methods: ['PUT'])]
     public function updateEmployeeJobTitleCode(int $employeeJobTitleId, Request $request): JsonResponse
     {
         try {
@@ -108,7 +108,7 @@ class EmployeesJobTitleController
     }
 
     // Обновление перевода должности для указанного языка
-    #[Route('/{employeeJobTitleId}/update-translation/{translationId}', name: 'api_update_employee_job_title_translation', methods: ['PUT'])]
+    #[Route('/{employeeJobTitleId}/update-translation/{translationId}', name: 'update_translation', methods: ['PUT'])]
     public function updateEmployeeJobTitleTranslation(int $employeeJobTitleId, int $translationId, Request $request): JsonResponse
     {
         try {
@@ -124,7 +124,7 @@ class EmployeesJobTitleController
     }
 
     // Удаление конкретного перевода должности по его ID.
-    #[Route('/{employeeJobTitleId}/delete-translation/{translationId}', name: 'api_delete_employee_job_title_translation', methods: ['DELETE'])]
+    #[Route('/{employeeJobTitleId}/delete-translation/{translationId}', name: 'delete_translation', methods: ['DELETE'])]
     public function deleteEmployeeJobTitleTranslation(int $employeeJobTitleId, int $translationId): JsonResponse
     {
         try {
@@ -139,7 +139,7 @@ class EmployeesJobTitleController
     }
 
     // Удаление должности по ее ID.
-    #[Route('/{employeeJobTitleId}/delete/', name: 'api_delete_employee_job_title', methods: ['DELETE'])]
+    #[Route('/{employeeJobTitleId}/delete/', name: 'delete_id', methods: ['DELETE'])]
     public function deleteEmployeeJobTitle(int $employeeJobTitleId): JsonResponse
     {
         try {
@@ -154,7 +154,7 @@ class EmployeesJobTitleController
     }
 
     //Для демо данных
-    #[Route('/seed', name: 'api_seed_job_titles_and_translations', methods: ['POST'])]
+    #[Route('/seed', name: 'seed', methods: ['POST'])]
     public function seedJobTitlesAndTranslations(): JsonResponse
     {
         try {

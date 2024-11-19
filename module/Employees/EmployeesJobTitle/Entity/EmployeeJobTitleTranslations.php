@@ -20,9 +20,9 @@ class EmployeeJobTitleTranslations
     #[ORM\JoinColumn(name: 'EmployeeJobTitleID', referencedColumnName: 'EmployeeJobTitleID', nullable: false)]
     private EmployeesJobTitle $employeeJobTitleID;
 
-    #[ORM\ManyToOne(targetEntity: Language::class)]
-    #[ORM\JoinColumn(name: 'LanguageID', referencedColumnName: 'LanguageID', nullable: false)]
-    private Language $languageID;
+    #[ORM\Column(name: 'LanguageID', type: 'integer', nullable: false)]
+    #[Assert\NotBlank(message: "LanguageID is required.")]
+    private int $languageID;
 
     #[ORM\Column(name: 'EmployeeJobTitleName', type: 'string', length: 100)]
     #[Assert\NotBlank(message: "EmployeeJobTitleName is required.")]
@@ -45,12 +45,12 @@ class EmployeeJobTitleTranslations
         return $this;
     }
 
-    public function getLanguageID(): Language
+    public function getLanguageID(): int
     {
         return $this->languageID;
     }
 
-    public function setLanguageID(Language $languageID): self
+    public function setLanguageID(int $languageID): self
     {
         $this->languageID = $languageID;
         return $this;

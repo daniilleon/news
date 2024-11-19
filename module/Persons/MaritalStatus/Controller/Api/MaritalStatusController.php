@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Module\Common\Factory\ResponseFactory;
 
 //Контроллер API для работы с должностями.
-#[Route('/api/maritalstatus')]
+#[Route('/api/persons/maritalstatus', name: 'api_persons_maritalstatus_')]
 class MaritalStatusController
 {
     private MaritalStatusService $maritalStatusService;
@@ -28,7 +28,7 @@ class MaritalStatusController
     }
 
     // Получение списка всех Должностей.
-    #[Route('/', name: 'api_get_marital_status', methods: ['GET'])]
+    #[Route('/', name: 'get_all', methods: ['GET'])]
     public function getMaritalStatus(): JsonResponse
     {
         try {
@@ -42,7 +42,7 @@ class MaritalStatusController
     }
 
     // Получение данных Должности по её ID.
-    #[Route('/{maritalStatusId}', name: 'api_get_marital_status_id', methods: ['GET'])]
+    #[Route('/{maritalStatusId}', name: 'get_id', methods: ['GET'])]
     public function getMaritalStatusId(int $maritalStatusId): JsonResponse
     {
         try {
@@ -59,7 +59,7 @@ class MaritalStatusController
     }
 
     // Создание новой должности (её кода).
-    #[Route('/add', name: 'api_add_marital_status_add', methods: ['POST'])]
+    #[Route('/add', name: 'add', methods: ['POST'])]
     public function addMaritalStatus(Request $request): JsonResponse
     {
         try {
@@ -76,7 +76,7 @@ class MaritalStatusController
     }
 
     // Добавление перевода для должности.
-    #[Route('/{maritalStatusId}/add-translation', name: 'api_add_marital_status_translation', methods: ['POST'])]
+    #[Route('/{maritalStatusId}/add-translation', name: 'add_translation', methods: ['POST'])]
     public function addMaritalStatusTranslation(int $maritalStatusId, Request $request): JsonResponse
     {
         try {
@@ -92,7 +92,7 @@ class MaritalStatusController
     }
 
     // Обновление только основной должности (кода)
-    #[Route('/{maritalStatusId}/update', name: 'api_update_marital_status', methods: ['PUT'])]
+    #[Route('/{maritalStatusId}/update', name: 'update_id', methods: ['PUT'])]
     public function updateMaritalStatusCode(int $maritalStatusId, Request $request): JsonResponse
     {
         try {
@@ -108,7 +108,7 @@ class MaritalStatusController
     }
 
     // Обновление перевода должности для указанного языка
-    #[Route('/{maritalStatusId}/update-translation/{translationId}', name: 'api_update_marital_status_translation', methods: ['PUT'])]
+    #[Route('/{maritalStatusId}/update-translation/{translationId}', name: 'update_translation', methods: ['PUT'])]
     public function updateMaritalStatusTranslation(int $maritalStatusId, int $translationId, Request $request): JsonResponse
     {
         try {
@@ -124,7 +124,7 @@ class MaritalStatusController
     }
 
     // Удаление конкретного перевода должности по его ID.
-    #[Route('/{maritalStatusId}/delete-translation/{translationId}', name: 'api_delete_marital_status_translation', methods: ['DELETE'])]
+    #[Route('/{maritalStatusId}/delete-translation/{translationId}', name: 'delete_translation', methods: ['DELETE'])]
     public function deleteMaritalStatusTranslation(int $maritalStatusId, int $translationId): JsonResponse
     {
         try {
@@ -139,7 +139,7 @@ class MaritalStatusController
     }
 
     // Удаление должности по ее ID.
-    #[Route('/{maritalStatusId}/delete/', name: 'api_delete_marital_status', methods: ['DELETE'])]
+    #[Route('/{maritalStatusId}/delete/', name: 'delete_id', methods: ['DELETE'])]
     public function deleteMaritalStatus(int $maritalStatusId): JsonResponse
     {
         try {
@@ -154,7 +154,7 @@ class MaritalStatusController
     }
 
     //Для демо данных
-    #[Route('/seed', name: 'api_seed_marital_status_and_translations', methods: ['POST'])]
+    #[Route('/seed', name: 'seed', methods: ['POST'])]
     public function seedMaritalStatusAndTranslations(): JsonResponse
     {
         try {

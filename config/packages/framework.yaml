@@ -9,8 +9,13 @@ framework:
     #esi: true
     #fragments: true
 
+    cache:
+        app: cache.adapter.filesystem
+        default_redis_provider: 'redis://localhost'
+
 when@test:
     framework:
         test: true
         session:
             storage_factory_id: session.storage.factory.mock_file
+

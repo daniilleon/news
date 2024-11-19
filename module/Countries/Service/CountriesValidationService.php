@@ -3,25 +3,28 @@
 namespace Module\Countries\Service;
 
 use Module\Countries\Entity\Countries;
-use Module\Countries\Entity\CountryTranslation;
+use Module\Countries\Entity\CountryTranslations;
 use Module\Countries\Repository\CountriesRepository;
-use Module\Countries\Repository\CountryTranslationRepository;
-use Module\Languages\Entity\Language;
+use Module\Countries\Repository\CountryTranslationsRepository;
+use Module\Common\Service\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 
 class CountriesValidationService
 {
     private CountriesRepository $countryRepository;
-    private CountryTranslationRepository $translationRepository;
+    private CountryTranslationsRepository $translationRepository;
+    private LanguagesProxyService $languagesProxyService;
     private LoggerInterface $logger;
 
     public function __construct(
-        CountriesRepository $countryRepository,
-        CountryTranslationRepository $translationRepository,
-        LoggerInterface $logger
+        CountriesRepository           $countryRepository,
+        CountryTranslationsRepository $translationRepository,
+        LanguagesProxyService         $languagesProxyService,
+        LoggerInterface               $logger
     ) {
         $this->countryRepository = $countryRepository;
         $this->translationRepository = $translationRepository;
+        $this->languagesProxyService = $languagesProxyService;
         $this->logger = $logger;
     }
 
@@ -136,11 +139,14 @@ class CountriesValidationService
     /**
      * Получение и проверка уникальности перевода.
      */
-    public function ensureUniqueTranslation(Countries $country, Language $language): void
+    public function ensureUniqueTranslation(Countries $country, int $languageId): void
     {
-        $existingTranslation = $this->translationRepository->findTranslationByCountryAndLanguage($country, $language);
+        // Валидация языка через прокси
+        $this->languagesProxyService->validateLanguageID($languageId);
+        $existingTranslation = $this->translationRepository->findTranslationsByCountryAndLanguage($country, $languageId);
+
         if ($existingTranslation) {
-            $this->logger->error("Translation for Country ID {$country->getCountryID()} with Language ID {$language->getLanguageID()} already exists.");
+            $this->logger->error("Translation for Country ID {$country->getCountryID()} with Language ID {$languageId} already exists.");
             throw new \InvalidArgumentException("Translation for this language already exists for this country.");
         }
     }
@@ -151,37 +157,51 @@ class CountriesValidationService
      * @param Countries $country
      * @return array
      */
-    public function formatCountryData(Countries $country, bool $detail = false): array
+    public function formatCountryData(Countries $country, bool $detail = false, ?int $languageId = null): array
     {
-        if($detail) {
-            return [
-                'Countries' => [
-                    'CountryID' => $country->getCountryID(),
-                    'CountryLink' => $country->getCountryLink(),
-                ]
-            ];
-        } else {
-            return [
-                'CountryID' => $country->getCountryID(),
-                'CountryLink' => $country->getCountryLink(),
-            ];
+        $countryData = [
+            'CountryID' => $country->getCountryID(),
+            'CountryLink' => $country->getCountryLink(),
+            'OgImage' => $country->getOgImage(),
+
+        ];
+
+        // Если требуется детальная информация и указан язык, получаем перевод
+        if ($detail && $languageId) {
+            try {
+                $this->languagesProxyService->getLanguageById($languageId);
+                $translation = $this->getCountryTranslation($country, $languageId);
+
+                $countryData['Translation'] = $translation
+                    ? $this->formatCountryTranslationsData($translation)
+                    : 'Translation not available for the selected language.';
+
+            } catch (\Exception $e) {
+                $countryData['Translation'] = 'Language details unavailable.';
+            }
         }
+
+        return $detail ? ['Countries' => $countryData] : $countryData;
     }
 
     /**
      * Форматирование данных перевода категории для ответа.
      *
-     * @param CountryTranslation $translation
+     * @param CountryTranslations $translation
      * @return array
      */
-    public function formatCountryTranslationData(CountryTranslation $translation): array
+    public function formatCountryTranslationsData(CountryTranslations $translation): array
     {
         return [
             'TranslationID' => $translation->getCountryTranslationID(),
-            'LanguageID' => $translation->getLanguageID()->getLanguageID(),
+            'LanguageID' => $translation->getLanguageID(),
             'CountryName' => $translation->getCountryName(),
             'CountryDescription' => $translation->getCountryDescription(),
         ];
     }
 
+    public function getCountryTranslation(Countries $country, int $languageId): ?CountryTranslations
+    {
+        return $this->translationRepository->findTranslationsByCountryAndLanguage($country, $languageId);
+    }
 }

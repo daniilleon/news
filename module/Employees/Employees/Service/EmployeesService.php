@@ -3,38 +3,32 @@
 namespace Module\Employees\Employees\Service;
 
 use InvalidArgumentException;
-use Module\Categories\Repository\CategoriesRepository;
-use Module\Categories\Service\CategoriesValidationService;
 use Module\Common\Helpers\FieldUpdateHelper;
 use Module\Employees\Employees\Entity\Employee;
 use Module\Employees\Employees\Repository\EmployeesRepository;
 use \Module\Employees\Employees\Service\EmployeesValidationService;
 use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
 use Module\Employees\EmployeesJobTitle\Service\EmployeesJobTitleValidationService;
-use Module\Languages\Repository\LanguagesRepository;
-use Module\Languages\Service\LanguagesValidationService;
+use Module\Common\Service\LanguagesProxyService;
+use Module\Common\Service\CategoriesProxyService;
 use Psr\Log\LoggerInterface;
 
 class EmployeesService
 {
     private EmployeesRepository $employeeRepository;
     private EmployeesJobTitleRepository $employeesJobTitleRepository;
-    private LanguagesRepository $languageRepository;
-    private CategoriesRepository $categoriesRepository;
-    private LoggerInterface $logger;
-    private LanguagesValidationService $languagesValidationService;
-    private CategoriesValidationService $categoriesValidationService;
     private EmployeesValidationService $employeesValidationService;
     private EmployeesJobTitleValidationService $employeesJobTitleValidationService;
+    private LanguagesProxyService $languagesProxyService;
+    private CategoriesProxyService $categoriesProxyService;
+    private LoggerInterface $logger;
     private FieldUpdateHelper $helper;
 
     public function __construct(
         EmployeesRepository $employeeRepository,
         EmployeesJobTitleRepository $employeesJobTitleRepository,
-        LanguagesRepository $languageRepository,
-        CategoriesRepository $categoriesRepository,
-        LanguagesValidationService $languagesValidationService,
-        CategoriesValidationService $categoriesValidationService,
+        LanguagesProxyService $languagesProxyService,
+        CategoriesProxyService $categoriesProxyService,
         EmployeesValidationService $employeesValidationService,
         EmployeesJobTitleValidationService $employeesJobTitleValidationService,
         FieldUpdateHelper $helper,
@@ -42,10 +36,8 @@ class EmployeesService
     {
         $this->employeeRepository = $employeeRepository;
         $this->employeesJobTitleRepository = $employeesJobTitleRepository;
-        $this->languageRepository = $languageRepository;
-        $this->categoriesRepository = $categoriesRepository;
-        $this->languagesValidationService = $languagesValidationService;
-        $this->categoriesValidationService = $categoriesValidationService;
+        $this->languagesProxyService = $languagesProxyService;
+        $this->categoriesProxyService = $categoriesProxyService;
         $this->employeesValidationService = $employeesValidationService;
         $this->employeesJobTitleValidationService = $employeesJobTitleValidationService;
         $this->helper = $helper;
@@ -129,8 +121,8 @@ class EmployeesService
 
             //$employeeJobTitle = $this->employeesJobTitleValidationService->validateEmployeeJobTitleExists($data['EmployeeJobTitleID'] ?? null); // Проверка обязателен ли EmployeeJobTitle
             // Валидация языка и категории
-            $language = $this->languagesValidationService->validateLanguageID($data['LanguageID'] ?? null); // Проверка существования языка
-            $category = $this->categoriesValidationService->validateCategoryExists($data['CategoryID'] ?? null); // Проверка существования категории
+            $languageData = $this->languagesProxyService->validateLanguageID($data['LanguageID'] ?? null); // Проверка существования языка
+            $categoryData = $this->categoriesProxyService->validateCategoryExists($data['CategoryID'] ?? null); // Проверка существования категории
 
             // Поиск должности с кодом HIRED
             $employeeJobTitle = $this->employeesJobTitleRepository->findEmployeeJobTitleByCode('HIRED');
@@ -141,8 +133,8 @@ class EmployeesService
 
             $employee = new Employee();
             $employee->setEmployeeJobTitleID($employeeJobTitle);
-            $employee->setEmployeeLanguageID($language);
-            $employee->setEmployeeCategoryID($category);
+            $employee->setLanguageID($languageData['LanguageID']);
+            $employee->setCategoryID($categoryData['CategoryID']);
 
             // Устанавливаем значения полей
             foreach ($data as $field => $value) {
@@ -231,13 +223,15 @@ class EmployeesService
 
                 // Обработка LanguageID
                 if ($field === 'LanguageID') {
-                    $language = $this->languagesValidationService->validateLanguageID($value);
-                    $employee->setEmployeeLanguageID($language);
+                    $languageData = $this->languagesProxyService->validateLanguageID($value);
+                    $employee->setLanguageID($languageData['LanguageID']);
                 }
                 // Обработка CategoryID
                 elseif ($field === 'CategoryID') {
-                    $category = $this->categoriesValidationService->validateCategoryExists($value);
-                    $employee->setEmployeeCategoryID($category);
+                    $categoryData = $this->categoriesProxyService->validateCategoryExists($value);
+                    $this->logger->info("Updating CategoryID to: " . $categoryData['CategoryID']);
+                    $employee->setCategoryID($categoryData['CategoryID']);
+                    $this->logger->info("CategoryID after update: " . $employee->getCategoryID());
                 }
                 // Обработка EmployeeJobTitleID
                 elseif ($field === 'EmployeeJobTitleID') {
@@ -260,8 +254,13 @@ class EmployeesService
             // Исключение из массива данных перед фильтрацией и валидацией
             //$this->helper->validateAndFilterFields($employee, array_diff_key($data, array_flip(['LanguageID', 'CategoryID', 'EmployeeActive'])));
 
+            $this->logger->info("Saving Employee: " . json_encode([
+                    'ID' => $employee->getEmployeeID(),
+                    'CategoryID' => $employee->getCategoryID(),
+                ]));
             // Сохраняем изменения
             $this->employeeRepository->saveEmployee($employee, true);
+            $this->logger->info("Changes flushed for Employee ID: " . $employee->getEmployeeID());
             $this->logger->info("Employee with ID $id successfully updated.");
 
             // Формируем и возвращаем отформатированные данные
@@ -438,8 +437,8 @@ class EmployeesService
 
             try {
                 // Проверка языка и категории
-                $language = $this->languagesValidationService->validateLanguageID($languageID);
-                $category = $this->categoriesValidationService->validateCategoryExists($categoryID);
+                $languageData = $this->languagesProxyService->validateLanguageID($languageID);
+                $categoryData = $this->categoriesProxyService->validateCategoryExists($categoryID);
 
                 // Поиск должности с кодом HIRED
                 $employeeJobTitle = $this->employeesJobTitleRepository->findEmployeeJobTitleByCode('HIRED');
@@ -452,8 +451,8 @@ class EmployeesService
                 $employee = new Employee();
                 $employee->setEmployeeLink($employeeLink)
                     ->setEmployeeName($employeeName)
-                    ->setEmployeeLanguageID($language)
-                    ->setEmployeeCategoryID($category)
+                    ->setLanguageID($languageData['LanguageID'])
+                    ->setCategoryID($categoryData['CategoryID'])
                     ->setEmployeeJobTitleID($employeeJobTitle)
                     ->setEmployeeActive(true); // По умолчанию активен
 
