@@ -6,7 +6,7 @@ use Module\Core\Countries\Entity\Countries;
 use Module\Core\Countries\Entity\CountryTranslations;
 use Module\Core\Countries\Repository\CountriesRepository;
 use Module\Core\Countries\Repository\CountryTranslationsRepository;
-use Module\Common\Service\LanguagesProxyService;
+use Module\Common\Proxy\Core\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 
 class CountriesValidationService

@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Module\Common\Factory\ResponseFactory;
 
 // Основной контроллер API для работы с категориями.
-#[Route('/api/industries', name: 'api_industries_')]
+#[Route('/api/shared/industries', name: 'api_industries_')]
 class IndustriesController
 {
     private IndustriesService $industriesService;

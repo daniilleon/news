@@ -9,7 +9,7 @@ use Module\Core\Countries\Entity\CountryTranslations;
 use Module\Core\Countries\Repository\CountriesRepository;
 use Module\Core\Countries\Repository\CountryTranslationsRepository;
 use \Module\Core\Countries\Service\CountriesValidationService;
-use Module\Common\Service\LanguagesProxyService;
+use Module\Common\Proxy\Core\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 

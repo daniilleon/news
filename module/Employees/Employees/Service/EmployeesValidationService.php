@@ -5,8 +5,8 @@ namespace Module\Employees\Employees\Service;
 use Module\Employees\Employees\Entity\Employee;
 use Module\Employees\Employees\Repository\EmployeesRepository;
 use Module\Employees\EmployeesJobTitle\Service\EmployeesJobTitleValidationService;
-use Module\Common\Service\LanguagesProxyService;
-use Module\Common\Service\CategoriesProxyService;
+use Module\Common\Proxy\Core\LanguagesProxyService;
+use Module\Common\Proxy\Core\CategoriesProxyService;
 use Psr\Log\LoggerInterface;
 
 class EmployeesValidationService

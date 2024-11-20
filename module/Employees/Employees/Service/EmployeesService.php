@@ -9,8 +9,8 @@ use Module\Employees\Employees\Repository\EmployeesRepository;
 use \Module\Employees\Employees\Service\EmployeesValidationService;
 use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
 use Module\Employees\EmployeesJobTitle\Service\EmployeesJobTitleValidationService;
-use Module\Common\Service\LanguagesProxyService;
-use Module\Common\Service\CategoriesProxyService;
+use Module\Common\Proxy\Core\LanguagesProxyService;
+use Module\Common\Proxy\Core\CategoriesProxyService;
 use Psr\Log\LoggerInterface;
 
 class EmployeesService

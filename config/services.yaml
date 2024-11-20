@@ -9,10 +9,10 @@ services:
     Symfony\Component\Validator\Validator\ValidatorInterface:
         alias: validator
 
-    Module\Common\Service\LanguagesProxyService:
+    Module\Common\Proxy\Core\LanguagesProxyService:
         alias: languagesProxy
 
-    Module\Common\Service\CategoriesProxyService:
+    Module\Common\Proxy\Core\CategoriesProxyService:
         alias: categoriesProxy
 
     # makes classes in src/ available to be used as services

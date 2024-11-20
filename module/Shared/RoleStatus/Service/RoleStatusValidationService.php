@@ -6,7 +6,7 @@ use Module\Shared\RoleStatus\Entity\RoleStatus;
 use Module\Shared\RoleStatus\Entity\RoleStatusTranslations;
 use Module\Shared\RoleStatus\Repository\RoleStatusRepository;
 use Module\Shared\RoleStatus\Repository\RoleStatusTranslationsRepository;
-use Module\Common\Service\LanguagesProxyService;
+use Module\Common\Proxy\Core\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 
 class RoleStatusValidationService

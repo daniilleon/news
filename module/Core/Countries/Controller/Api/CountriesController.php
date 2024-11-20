@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Module\Common\Factory\ResponseFactory;
 
 // Основной контроллер API для работы с категориями.
-#[Route('/api/countries')]
+#[Route('/api/core/countries')]
 class CountriesController
 {
     private CountriesService $countriesService;

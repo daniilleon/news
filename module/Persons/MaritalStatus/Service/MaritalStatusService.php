@@ -8,7 +8,7 @@ use Module\Persons\MaritalStatus\Entity\MaritalStatus;
 use Module\Persons\MaritalStatus\Entity\MaritalStatusTranslations;
 use Module\Persons\MaritalStatus\Repository\MaritalStatusRepository;
 use Module\Persons\MaritalStatus\Repository\MaritalStatusTranslationsRepository;
-use Module\Common\Service\LanguagesProxyService;
+use Module\Common\Proxy\Core\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 
 class MaritalStatusService

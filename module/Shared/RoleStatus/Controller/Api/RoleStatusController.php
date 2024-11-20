@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Module\Common\Factory\ResponseFactory;
 
 //Контроллер API для работы с должностями.
-#[Route('/api/rolestatus', name: 'api_rolestatus_')]
+#[Route('/api/shared/rolestatus', name: 'api_rolestatus_')]
 class RoleStatusController
 {
     private RoleStatusService $roleStatusService;

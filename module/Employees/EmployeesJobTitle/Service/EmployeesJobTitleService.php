@@ -9,7 +9,7 @@ use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
 use Module\Employees\EmployeesJobTitle\Repository\EmployeeJobTitleTranslationsRepository;
 use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
 use Module\Employees\EmployeesJobTitle\Service\EmployeesJobTitleValidationService;
-use Module\Common\Service\LanguagesProxyService;
+use Module\Common\Proxy\Core\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 

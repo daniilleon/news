@@ -6,7 +6,7 @@ use Module\Employees\EmployeesJobTitle\Entity\EmployeeJobTitleTranslations;
 use Module\Employees\EmployeesJobTitle\Entity\EmployeesJobTitle;
 use Module\Employees\EmployeesJobTitle\Repository\EmployeeJobTitleTranslationsRepository;
 use Module\Employees\EmployeesJobTitle\Repository\EmployeesJobTitleRepository;
-use Module\Common\Service\LanguagesProxyService;
+use Module\Common\Proxy\Core\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 
 class EmployeesJobTitleValidationService

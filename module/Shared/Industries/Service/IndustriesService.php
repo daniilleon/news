@@ -8,7 +8,7 @@ use Module\Shared\Industries\Repository\IndustriesRepository;
 use Module\Shared\Industries\Repository\IndustryTranslationsRepository;
 use Module\Common\Helpers\FieldUpdateHelper;
 use Module\Common\Service\ImageService;
-use Module\Common\Service\LanguagesProxyService;
+use Module\Common\Proxy\Core\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 

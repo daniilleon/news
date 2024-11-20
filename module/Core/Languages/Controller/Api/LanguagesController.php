@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[Route('/api/languages')]
+#[Route('/api/core/languages')]
 class LanguagesController
 {
     private LanguagesService $languagesService;

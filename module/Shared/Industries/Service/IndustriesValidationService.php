@@ -6,7 +6,7 @@ use Module\Shared\Industries\Entity\Industries;
 use Module\Shared\Industries\Entity\IndustryTranslations;
 use Module\Shared\Industries\Repository\IndustriesRepository;
 use Module\Shared\Industries\Repository\IndustryTranslationsRepository;
-use Module\Common\Service\LanguagesProxyService;
+use Module\Common\Proxy\Core\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 
 class IndustriesValidationService

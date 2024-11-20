@@ -6,7 +6,7 @@ use Module\Persons\EducationLevels\Entity\EducationLevels;
 use Module\Persons\EducationLevels\Entity\EducationLevelTranslations;
 use Module\Persons\EducationLevels\Repository\EducationLevelsRepository;
 use Module\Persons\EducationLevels\Repository\EducationLevelTranslationsRepository;
-use Module\Common\Service\LanguagesProxyService;
+use Module\Common\Proxy\Core\LanguagesProxyService;
 use Psr\Log\LoggerInterface;
 
 class EducationLevelsValidationService
