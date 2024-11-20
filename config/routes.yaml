@@ -15,17 +15,32 @@ nested_module_controllers:
     type: attribute
     #  name_prefix: 'api_nested_'   # Префикс для маршрутов подмодулей
 
+###Основные модули Core начало###
+#Модуль языки Languages
 language_controller:
-    resource: '../module/Languages/Controller/Api/'
+    resource: '../module/Core/Languages/Controller/Api/'
     type: attribute
-
+#Модуль категории Categories
 categories_controller:
-    resource: '../module/Categories/Controller/Api/'
+    resource: '../module/Core/Categories/Controller/Api/'
     type: attribute
-
+#Модуль страны Countries
 countries_controller:
-    resource: '../module/Countries/Controller/Api/'
+    resource: '../module/Core/Countries/Controller/Api/'
     type: attribute
+###Основные модули Core конец###
+
+
+###Вспомогательные модули Shared начало###
+#Модуль Индустрия Industries
+industries_controller:
+    resource: '../module/Shared/Industries/Controller/Api/'
+    type: attribute
+#Модуль Роли Персоны
+roles_status_controller:
+    resource: '../module/Shared/RoleStatus/Controller/Api/'
+    type: attribute
+###Вспомогательные модули Shared конец###
 
 
 ###Модули Employees начало###

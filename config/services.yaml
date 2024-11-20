@@ -28,19 +28,32 @@ services:
     #        $languagesRepository: '@Module\Languages\Repository\LanguagesRepository'
     #        $logger: '@logger'
 
-    Module\Languages\Controller\Api\LanguagesController:
+    ###Основные модули Core начало###
+    #Модуль языки Languages
+    Module\Core\Languages\Controller\Api\LanguagesController:
         tags: ['controller.service_arguments']
         public: true
-
-    Module\Categories\Controller\Api\CategoriesController:
+    #Модуль категории Categories
+    Module\Core\Categories\Controller\Api\CategoriesController:
         tags: [ 'controller.service_arguments' ]
         public: true
-        #condition: '%modules_config.modules.categories.enabled%'
-
-    Module\Countries\Controller\Api\CountriesController:
+    #Модуль страны Countries
+    Module\Core\Countries\Controller\Api\CountriesController:
         tags: [ 'controller.service_arguments' ]
         public: true
-        #condition: '%modules_config.modules.countries.enabled%'
+    ###Основные модули Core конец###
+
+
+    ###Вспомогательные модули Shared начало###
+    #Модуль Роли Персоны
+    Module\Shared\RoleStatus\Controller\Api\RoleStatusController:
+        tags: [ 'controller.service_arguments' ]
+        public: true
+    #Модуль Индустрия Industries
+    Module\Shared\Industries\Controller\Api\IndustriesController:
+        tags: [ 'controller.service_arguments' ]
+        public: true
+    ###Вспомогательные модули Shared конец###
 
 
     ###Модули Employees начало###
@@ -48,12 +61,10 @@ services:
     Module\Employees\Employees\Controller\Api\EmployeesController:
         tags: [ 'controller.service_arguments' ]
         public: true
-        #condition: '%modules_config.modules.employees.enabled%'
     #Модуль EmployeesJobTitle
     Module\Employees\EmployeesJobTitle\Controller\Api\EmployeesJobTitleController:
         tags: [ 'controller.service_arguments' ]
         public: true
-        #condition: '%modules_config.modules.employees.submodules.employeesJobTitle.enabled%'
     ###Модули Employees конец###
 
 

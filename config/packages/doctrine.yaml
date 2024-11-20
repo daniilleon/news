@@ -18,24 +18,47 @@ doctrine:
             Doctrine\DBAL\Platforms\PostgreSQLPlatform: identity
         auto_mapping: true
         mappings:
-            LanguageModule:
+            ###Основные модули Core начало###
+            #Модуль языки Languages
+            LanguagesModule:
                 type: attribute
                 is_bundle: false
-                dir: '%kernel.project_dir%/module/Languages/Entity'
-                prefix: 'Module\Languages\Entity'
+                dir: '%kernel.project_dir%/module/Core/Languages/Entity'
+                prefix: 'Module\Core\Languages\Entity'
                 alias: LanguagesModule
+            #Модуль категории Categories
             CategoriesModule:
                 type: attribute
                 is_bundle: false
-                dir: '%kernel.project_dir%/module/Categories/Entity'
-                prefix: 'Module\Categories\Entity'
+                dir: '%kernel.project_dir%/module/Core/Categories/Entity'
+                prefix: 'Module\Core\Categories\Entity'
                 alias: CategoriesModule
+            #Модуль страны Countries
             CountriesModule:
                 type: attribute
                 is_bundle: false
-                dir: '%kernel.project_dir%/module/Countries/Entity'
-                prefix: 'Module\Countries\Entity'
+                dir: '%kernel.project_dir%/module/Core/Countries/Entity'
+                prefix: 'Module\Core\Countries\Entity'
                 alias: CountriesModule
+            ###Основные модули Core конец###
+
+
+            ###Вспомогательные модули Shared начало###
+            #Модуль Роли Персоны
+            RoleStatusModule:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/module/Shared/RoleStatus/Entity'
+                prefix: 'Module\Shared\RoleStatus\Entity'
+                alias: CountriesModule
+            #Модуль Индустрия Industries
+            IndustriesModule:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/module/Shared/Industries/Entity'
+                prefix: 'Module\Shared\Industries\Entity'
+                alias: IndustriesModule
+            ###Вспомогательные модули Shared конец###
 
 
             ###Модули Employees начало###
