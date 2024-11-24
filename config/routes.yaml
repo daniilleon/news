@@ -30,6 +30,13 @@ countries_controller:
     type: attribute
 ###Основные модули Core конец###
 
+#####################
+#СЮДА ГЕНЕРИРУЕМ НОВЫЙ ROUT
+#####################
+
+#####################
+#После ГЕНЕРАЦИИ НОВОГО ROUT, вставляется запись "СЮДА ГЕНЕРИРУЕМ НОВЫЙ ROUT" для следующего поиска и генерации
+#####################
 
 ###Вспомогательные модули Shared начало###
 #Модуль Индустрия Industries
@@ -39,6 +46,10 @@ industries_controller:
 #Модуль Роли Персоны
 roles_status_controller:
     resource: '../module/Shared/RoleStatus/Controller/Api/'
+    type: attribute
+#Модуль Миссии
+missions_statements_controller:
+    resource: '../module/Shared/MissionsStatements/Controller/Api/'
     type: attribute
 ###Вспомогательные модули Shared конец###
 

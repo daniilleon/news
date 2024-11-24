@@ -53,6 +53,10 @@ services:
     Module\Shared\Industries\Controller\Api\IndustriesController:
         tags: [ 'controller.service_arguments' ]
         public: true
+    #Модуль Миссии
+    Module\Shared\MissionsStatements\Controller\Api\MissionsStatementsController:
+        tags: [ 'controller.service_arguments' ]
+        public: true
     ###Вспомогательные модули Shared конец###
 
 

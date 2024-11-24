@@ -205,6 +205,4 @@ class EducationLevelsValidationService
 
         return $translation;
     }
-
-
 }

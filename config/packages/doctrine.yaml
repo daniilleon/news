@@ -50,7 +50,7 @@ doctrine:
                 is_bundle: false
                 dir: '%kernel.project_dir%/module/Shared/RoleStatus/Entity'
                 prefix: 'Module\Shared\RoleStatus\Entity'
-                alias: CountriesModule
+                alias: RoleStatusModule
             #Модуль Индустрия Industries
             IndustriesModule:
                 type: attribute
@@ -58,6 +58,13 @@ doctrine:
                 dir: '%kernel.project_dir%/module/Shared/Industries/Entity'
                 prefix: 'Module\Shared\Industries\Entity'
                 alias: IndustriesModule
+            #Модуль Индустрия Industries
+            MissionsStatementsModule:
+                type: attribute
+                is_bundle: false
+                dir: '%kernel.project_dir%/module/Shared/MissionsStatements/Entity'
+                prefix: 'Module\Shared\MissionsStatements\Entity'
+                alias: MissionsStatementsModule
             ###Вспомогательные модули Shared конец###
 
 
